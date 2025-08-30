@@ -1,0 +1,21 @@
+{
+  "name": "fragments",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Fragments back-end API",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DestinHan/fragments.git"
+  },
+  "author": "Seung Hoon Han",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "add": "^2.0.6",
+    "git": "^0.1.5",
+    "package-lock.json": "^1.0.0",
+    "package.json": "^2.0.1"
+  }
+}
