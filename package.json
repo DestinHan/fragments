@@ -17,5 +17,8 @@
     "git": "^0.1.5",
     "package-lock.json": "^1.0.0",
     "package.json": "^2.0.1"
+  },
+  "devDependencies": {
+    "prettier": "3.6.2"
   }
 }
