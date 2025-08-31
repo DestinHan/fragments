@@ -1,3 +1,4 @@
+// src/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -20,7 +21,7 @@ app.get('/', (req, res) => {
   res.status(200).json({
     status: 'ok',
     author,
-    githubUrl: 'https://github.com/DestinHan/fragments', 
+    githubUrl: 'https://github.com/DestinHan/fragments',
     version,
   });
 });
@@ -32,6 +33,7 @@ app.use((req, res) => {
   });
 });
 
+// eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const status = err.status || 500;
   const message = err.message || 'unable to process request';
