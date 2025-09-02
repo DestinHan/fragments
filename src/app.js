@@ -1,4 +1,3 @@
-// src/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -18,6 +17,11 @@ app.use(compression());
 
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
+
+  //if ((process.env.LOG_LEVEL || 'info') === 'debug') {
+  //  logger.info({ env: process.env }, 'process.env dump (debug mode)');
+  //}
+
   res.status(200).json({
     status: 'ok',
     author,
