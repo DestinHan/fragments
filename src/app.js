@@ -8,6 +8,8 @@ const { author, version } = require('../package.json');
 const logger = require('./logger');
 const pino = require('pino-http')({ logger });
 
+const v1 = require('./routes/v1');
+
 const app = express();
 
 app.use(pino);
@@ -15,12 +17,13 @@ app.use(helmet());
 app.use(cors());
 app.use(compression());
 
+// Health check
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
 
-  //if ((process.env.LOG_LEVEL || 'info') === 'debug') {
-  //  logger.info({ env: process.env }, 'process.env dump (debug mode)');
-  //}
+  // if ((process.env.LOG_LEVEL || 'info') === 'debug') {
+  //   logger.info({ env: process.env }, 'process.env dump (debug mode)');
+  // }
 
   res.status(200).json({
     status: 'ok',
@@ -29,6 +32,8 @@ app.get('/', (req, res) => {
     version,
   });
 });
+
+app.use('/v1', v1);
 
 app.use((req, res) => {
   res.status(404).json({

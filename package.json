@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "compression": "^1.8.1",
+    "content-type": "^1.0.5",
     "cors": "^2.8.5",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
