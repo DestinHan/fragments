@@ -5,7 +5,7 @@ Fragments back-end API
 ## Description
 
 A simple Node.js + Express back-end API for managing and serving fragments.  
-This project was created as part of **CCP Lab 1** to practice environment setup, linting, logging, and health check endpoints.
+This project was created as part of **CCP Lab 1 / Assignment 1**.
 
 ---
 
@@ -22,6 +22,14 @@ npm install
 ---
 
 ## Scripts
+
+```bash
+npm run lint # ESLint
+npm test # Jest unit tests
+npm run dev # node --env-file=debug.env --watch ./src/server.js
+npm start # node src/server.js
+npm run debug # inspector + watch
+```
 
 ### Lint
 
@@ -67,3 +75,15 @@ Expected JSON output:
   "version": "0.0.1"
 }
 ```
+
+## Authentication
+
+HTTP Basic via Passport (Authorization: Basic base64(email:password))
+
+All /v1/\* routes require authentication.
+
+## Endpoints
+
+POST /v1/fragments — create a text fragment (Content-Type: text/plain; charset=utf-8)
+GET /v1/fragments — list fragment IDs (use ?expand=1 to get metadata objects)
+GET /v1/fragments/:id — get raw fragment data
