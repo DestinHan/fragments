@@ -1,14 +1,11 @@
-// src/routes/v1.js
 const express = require('express');
 const { Fragment } = require('../model/fragment');
 const authenticate = require('../auth/auth-middleware');
 
 const router = express.Router();
 
-// Basic/HTTP 전략 (Cognito 가면 'bearer'로 교체)
 router.use(authenticate('http'));
 
-// /fragments 바디를 Buffer로 받기 (최대 5MB)
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
 // POST /v1/fragments
@@ -52,7 +49,6 @@ router.post('/fragments', async (req, res, next) => {
   }
 });
 
-// GET /v1/fragments (id 목록 or expand=1 시 메타데이터 배열)
 router.get('/fragments', async (req, res) => {
   try {
     const ownerId = req.user;
@@ -67,7 +63,6 @@ router.get('/fragments', async (req, res) => {
   }
 });
 
-// GET /v1/fragments/:id (원본 데이터)
 router.get('/fragments/:id', async (req, res) => {
   const ownerId = req.user;
   const { id } = req.params;
