@@ -4,7 +4,7 @@ const authenticate = require('../auth/auth-middleware');
 
 const router = express.Router();
 
-router.use(authenticate);
+router.use(authenticate('http'));
 
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
@@ -60,10 +60,9 @@ router.get('/fragments', async (req, res, next) => {
 });
 
 router.get('/fragments/:id', async (req, res, next) => {
+  const ownerId = req.user;
+  const { id } = req.params;
   try {
-    const ownerId = req.user;
-    const { id } = req.params;
-
     const frag = await Fragment.byId(ownerId, id);
     const data = await frag.getData();
     if (!data) {
@@ -75,7 +74,10 @@ router.get('/fragments/:id', async (req, res, next) => {
     res.setHeader('Content-Type', frag.type);
     return res.status(200).send(data);
   } catch (err) {
-    next(err);
+    return res.status(404).json({
+      status: 'error',
+      error: { message: 'not found', code: 404 },
+    });
   }
 });
 
