@@ -8,7 +8,7 @@ router.use(authenticate('http'));
 
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
-// POST /v1/fragments
+// POST
 router.post('/fragments', async (req, res, next) => {
   try {
     const ownerId = req.user;
@@ -49,6 +49,7 @@ router.post('/fragments', async (req, res, next) => {
   }
 });
 
+// GET
 router.get('/fragments', async (req, res) => {
   try {
     const ownerId = req.user;
@@ -63,6 +64,7 @@ router.get('/fragments', async (req, res) => {
   }
 });
 
+// GET
 router.get('/fragments/:id', async (req, res) => {
   const ownerId = req.user;
   const { id } = req.params;
@@ -77,6 +79,46 @@ router.get('/fragments/:id', async (req, res) => {
     }
     res.setHeader('Content-Type', frag.type);
     return res.status(200).send(data);
+  } catch {
+    return res.status(404).json({
+      status: 'error',
+      error: { message: 'not found', code: 404 },
+    });
+  }
+});
+
+// GET
+router.get('/fragments/:id/info', async (req, res) => {
+  const ownerId = req.user;
+  const { id } = req.params;
+  try {
+    const frag = await Fragment.byId(ownerId, id);
+    return res.status(200).json({
+      status: 'ok',
+      fragment: {
+        id: frag.id,
+        ownerId: frag.ownerId,
+        created: frag.created,
+        updated: frag.updated,
+        type: frag.type,
+        size: frag.size,
+      },
+    });
+  } catch {
+    return res.status(404).json({
+      status: 'error',
+      error: { message: 'not found', code: 404 },
+    });
+  }
+});
+
+// DELETE
+router.delete('/fragments/:id', async (req, res) => {
+  const ownerId = req.user;
+  const { id } = req.params;
+  try {
+    await Fragment.delete(ownerId, id);
+    return res.status(200).json({ status: 'ok' });
   } catch {
     return res.status(404).json({
       status: 'error',
