@@ -5,10 +5,10 @@ const authenticate = require('../auth/auth-middleware');
 
 const router = express.Router();
 
-// 전략 지정 (Lab: http, Cognito 가면 bearer)
+// Basic/HTTP 전략 (Cognito 가면 'bearer'로 교체)
 router.use(authenticate('http'));
 
-// /fragments는 Body를 Buffer로 받음
+// /fragments 바디를 Buffer로 받기 (최대 5MB)
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
 // POST /v1/fragments
@@ -52,20 +52,23 @@ router.post('/fragments', async (req, res, next) => {
   }
 });
 
-// GET /v1/fragments
-router.get('/fragments', async (req, res, next) => {
+// GET /v1/fragments (id 목록 or expand=1 시 메타데이터 배열)
+router.get('/fragments', async (req, res) => {
   try {
     const ownerId = req.user;
     const expand = req.query.expand === '1';
     const result = await Fragment.byUser(ownerId, expand);
     return res.status(200).json({ status: 'ok', fragments: result });
-  } catch (err) {
-    next(err);
+  } catch {
+    return res.status(500).json({
+      status: 'error',
+      error: { message: 'unable to process request', code: 500 },
+    });
   }
 });
 
-// GET /v1/fragments/:id
-router.get('/fragments/:id', async (req, res, next) => {
+// GET /v1/fragments/:id (원본 데이터)
+router.get('/fragments/:id', async (req, res) => {
   const ownerId = req.user;
   const { id } = req.params;
   try {
@@ -79,7 +82,7 @@ router.get('/fragments/:id', async (req, res, next) => {
     }
     res.setHeader('Content-Type', frag.type);
     return res.status(200).send(data);
-  } catch (_err) {
+  } catch {
     return res.status(404).json({
       status: 'error',
       error: { message: 'not found', code: 404 },
