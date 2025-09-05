@@ -1,13 +1,17 @@
+// src/routes/v1.js
 const express = require('express');
 const { Fragment } = require('../model/fragment');
 const authenticate = require('../auth/auth-middleware');
 
 const router = express.Router();
 
+// 전략 지정 (Lab: http, Cognito 가면 bearer)
 router.use(authenticate('http'));
 
+// /fragments는 Body를 Buffer로 받음
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
+// POST /v1/fragments
 router.post('/fragments', async (req, res, next) => {
   try {
     const ownerId = req.user;
@@ -48,6 +52,7 @@ router.post('/fragments', async (req, res, next) => {
   }
 });
 
+// GET /v1/fragments
 router.get('/fragments', async (req, res, next) => {
   try {
     const ownerId = req.user;
@@ -59,6 +64,7 @@ router.get('/fragments', async (req, res, next) => {
   }
 });
 
+// GET /v1/fragments/:id
 router.get('/fragments/:id', async (req, res, next) => {
   const ownerId = req.user;
   const { id } = req.params;
@@ -73,7 +79,7 @@ router.get('/fragments/:id', async (req, res, next) => {
     }
     res.setHeader('Content-Type', frag.type);
     return res.status(200).send(data);
-  } catch (err) {
+  } catch (_err) {
     return res.status(404).json({
       status: 'error',
       error: { message: 'not found', code: 404 },
