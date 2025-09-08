@@ -87,3 +87,7 @@ All /v1/\* routes require authentication.
 POST /v1/fragments — create a text fragment (Content-Type: text/plain; charset=utf-8)
 GET /v1/fragments — list fragment IDs (use ?expand=1 to get metadata objects)
 GET /v1/fragments/:id — get raw fragment data
+
+## CI
+GitHub Actions workflow: .github/workflows/ci.yml
+CI should be green.

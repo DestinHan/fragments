@@ -1,3 +1,5 @@
+require('dotenv').config({ path: './debug.env' }); 
+
 const stoppable = require('stoppable');
 const logger = require('./logger');
 const app = require('./app');

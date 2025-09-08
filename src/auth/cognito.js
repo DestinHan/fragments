@@ -19,7 +19,6 @@ passport.use(
     try {
       const payload = await verifier.verify(token);
 
-      // 서버에서 사용할 최소 사용자 정보
       const user = {
         sub: payload.sub,
         email: payload.email,
@@ -35,4 +34,7 @@ passport.use(
   })
 );
 
-module.exports = {};
+module.exports = {
+  passport,
+  authenticate: () => passport.authenticate('bearer', { session: false }),
+};

@@ -16,18 +16,17 @@ const app = express();
 
 app.use(pino);
 app.use(helmet());
-app.use(cors());
+app.use(
+  cors({
+    origin: ['http://localhost:1234', 'http://localhost:3000'],
+  })
+);
 app.use(compression());
 app.use(passport.initialize());
 
 // Health check
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
-
-  // if ((process.env.LOG_LEVEL || 'info') === 'debug') {
-  //   logger.info({ env: process.env }, 'process.env dump (debug mode)');
-  // }
-
   res.status(200).json({
     status: 'ok',
     author,

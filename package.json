@@ -26,13 +26,16 @@
     "supertest": "^7.1.4"
   },
   "dependencies": {
+    "aws-jwt-verify": "^5.1.0",
     "compression": "^1.8.1",
     "content-type": "^1.0.5",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "passport": "^0.7.0",
     "passport-http": "^0.3.0",
+    "passport-http-bearer": "^1.0.1",
     "pino": "^9.9.0",
     "pino-http": "^10.5.0",
     "pino-pretty": "^13.1.1",

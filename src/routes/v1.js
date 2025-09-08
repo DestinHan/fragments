@@ -1,17 +1,17 @@
 const express = require('express');
+const passport = require('passport');
 const { Fragment } = require('../model/fragment');
-const authenticate = require('../auth/auth-middleware');
 
 const router = express.Router();
 
-router.use(authenticate('http'));
+router.use(passport.authenticate('bearer', { session: false }));
 
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
-// POST
+// POST /v1/fragments
 router.post('/fragments', async (req, res, next) => {
   try {
-    const ownerId = req.user;
+    const ownerId = req.user.sub; 
     const type = req.headers['content-type'];
 
     if (!Fragment.isSupportedType(type)) {
@@ -49,10 +49,10 @@ router.post('/fragments', async (req, res, next) => {
   }
 });
 
-// GET
+// GET /v1/fragments
 router.get('/fragments', async (req, res) => {
   try {
-    const ownerId = req.user;
+    const ownerId = req.user.sub; // ✅
     const expand = req.query.expand === '1';
     const result = await Fragment.byUser(ownerId, expand);
     return res.status(200).json({ status: 'ok', fragments: result });
@@ -64,9 +64,9 @@ router.get('/fragments', async (req, res) => {
   }
 });
 
-// GET
+// GET /v1/fragments/:id (raw data)
 router.get('/fragments/:id', async (req, res) => {
-  const ownerId = req.user;
+  const ownerId = req.user.sub; // ✅
   const { id } = req.params;
   try {
     const frag = await Fragment.byId(ownerId, id);
@@ -87,9 +87,9 @@ router.get('/fragments/:id', async (req, res) => {
   }
 });
 
-// GET
+// GET /v1/fragments/:id/info (metadata)
 router.get('/fragments/:id/info', async (req, res) => {
-  const ownerId = req.user;
+  const ownerId = req.user.sub; // ✅
   const { id } = req.params;
   try {
     const frag = await Fragment.byId(ownerId, id);
@@ -112,9 +112,9 @@ router.get('/fragments/:id/info', async (req, res) => {
   }
 });
 
-// DELETE
+// DELETE /v1/fragments/:id
 router.delete('/fragments/:id', async (req, res) => {
-  const ownerId = req.user;
+  const ownerId = req.user.sub; // ✅
   const { id } = req.params;
   try {
     await Fragment.delete(ownerId, id);
