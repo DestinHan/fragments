@@ -1,3 +1,4 @@
+// src/auth/auth-middleware.js
 const passport = require('passport');
 
 const { createErrorResponse } = require('../response');
@@ -11,33 +12,52 @@ const logger = require('../logger');
 module.exports = (strategyName) => {
   return function (req, res, next) {
     /**
-     * Define a custom callback to run after the user has been authenticated
-     * where we can modify the way that errors are handled, and hash emails.
-     * @param {Error} err - an error object
-     * @param {string} email - an authenticated user's email address
+     * Custom callback so we can unify user identity and handle errors ourselves.
+     * @param {Error} err
+     * @param {any} principal - for 'http' it's an email string, for 'bearer' it's a user object
      */
-    function callback(err, email) {
-      // Something failed, let the the error handling middleware deal with it
+    function callback(err, principal) {
+      // Internal error -> 500
       if (err) {
         logger.warn({ err }, 'error authenticating user');
-        return next(createErrorResponse(500, 'Unable to authenticate user'));
+        return res
+          .status(500)
+          .json(createErrorResponse(500, 'Unable to authenticate user'));
       }
 
-      // Not authorized, return a 401
-      if (!email) {
+      // No principal -> 401
+      if (!principal) {
         return res.status(401).json(createErrorResponse(401, 'Unauthorized'));
       }
 
-      // Authorized. Hash the user's email, attach to the request, and continue
-      req.user = hash(email);
-      logger.debug({ email, hash: req.user }, 'Authenticated user');
+      // Normalize identity
+      let userId;
+      let authObj;
 
-      // Call the next function in the middleware chain (e.g. your route handler)
+      if (typeof principal === 'string') {
+        // 'http' strategy: principal is the email
+        const email = principal;
+        userId = hash(email);                 // stable internal id
+        authObj = { email, sub: userId };     // keep shape compatible with bearer (has .sub)
+      } else {
+        // 'bearer' strategy: principal is the user object from Cognito verification
+        authObj = principal;
+        // Prefer hashed email if present; otherwise use sub from token
+        userId = principal.email ? hash(principal.email) : principal.sub;
+      }
+
+      if (!userId) {
+        return res.status(401).json(createErrorResponse(401, 'Unauthorized'));
+      }
+
+      // Expose unified identity
+      req.userId = userId;    // use this in routes/models as the ownerId
+      req.user = authObj;     // remains available for code expecting req.user.sub
+
+      logger.debug({ strategy: strategyName, userId }, 'Authenticated user');
       next();
     }
 
-    // Call the given passport strategy's authenticate() method, passing the
-    // req, res, next objects.  Invoke our custom callback when done.
     passport.authenticate(strategyName, { session: false }, callback)(req, res, next);
   };
 };
