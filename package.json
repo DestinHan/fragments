@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "description": "Fragments back-end API",
   "scripts": {
-    "lint": "eslint \"./src/**/*.js\"",
+    "lint": "eslint \"./src/**/*.js\" \"tests/**/*.js\"",
     "test": "cross-env AUTH_STRATEGY=http jest --runInBand",
     "test:watch": "cross-env AUTH_STRATEGY=http jest --watch",
     "coverage": "cross-env AUTH_STRATEGY=http jest --coverage --runInBand",
