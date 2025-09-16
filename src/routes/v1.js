@@ -1,27 +1,27 @@
 const express = require('express');
-const passport = require('passport');
+
 const { Fragment } = require('../model/fragment');
 const { createSuccessResponse, createErrorResponse } = require('../response');
 const hash = require('../hash');
 
+const authenticate = require('../auth/auth-middleware');
+
 const router = express.Router();
 
-
 const STRATEGY = process.env.AUTH_STRATEGY === 'http' ? 'http' : 'bearer';
-router.use(passport.authenticate(STRATEGY, { session: false }));
 
+router.use(authenticate(STRATEGY));
+
+router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
 function getOwnerId(req) {
-
+  if (req.userId) return req.userId;
   if (typeof req.user === 'string') return hash(req.user);
-
   if (req.user && req.user.sub) return req.user.sub;
   return null;
 }
 
-router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
-
-// POST /v1/fragments 
+// POST /v1/fragments
 router.post('/fragments', async (req, res, next) => {
   try {
     const ownerId = getOwnerId(req);
@@ -101,27 +101,25 @@ router.get('/fragments/:id/info', async (req, res) => {
 
   try {
     const frag = await Fragment.byId(ownerId, id);
-    return res
-      .status(200)
-      .json(
-        createSuccessResponse({
-          fragment: {
-            id: frag.id,
-            ownerId: frag.ownerId,
-            created: frag.created,
-            updated: frag.updated,
-            type: frag.type,
-            size: frag.size,
-          },
-        })
-      );
+    return res.status(200).json(
+      createSuccessResponse({
+        fragment: {
+          id: frag.id,
+          ownerId: frag.ownerId,
+          created: frag.created,
+          updated: frag.updated,
+          type: frag.type,
+          size: frag.size,
+        },
+      })
+    );
   } catch {
     return res.status(404).json(createErrorResponse(404, 'not found'));
   }
 });
 
 // DELETE /v1/fragments/:id
-router.delete('/fragments/:id', async (req, res) => {
+router.delete('/v1/fragments/:id', async (req, res) => {
   const ownerId = getOwnerId(req);
   const { id } = req.params;
 
