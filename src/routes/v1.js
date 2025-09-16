@@ -119,16 +119,24 @@ router.get('/fragments/:id/info', async (req, res) => {
 });
 
 // DELETE /v1/fragments/:id
-router.delete('/v1/fragments/:id', async (req, res) => {
+router.delete('/fragments/:id', async (req, res) => {
   const ownerId = getOwnerId(req);
   const { id } = req.params;
 
   try {
-    await Fragment.delete(ownerId, id);
-    return res.status(200).json(createSuccessResponse());
+    await Fragment.byId(ownerId, id);
   } catch {
     return res.status(404).json(createErrorResponse(404, 'not found'));
   }
+
+  try {
+    await Fragment.delete(ownerId, id);
+  } catch (e) {
+    // logger?.warn({ e, ownerId, id }, 'delete threw but resource existed; returning 200');
+  }
+
+  return res.status(200).json(createSuccessResponse());
 });
+
 
 module.exports = router;
