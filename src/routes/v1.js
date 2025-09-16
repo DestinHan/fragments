@@ -10,6 +10,8 @@ const router = express.Router();
 
 const STRATEGY = process.env.AUTH_STRATEGY === 'http' ? 'http' : 'bearer';
 
+const logger = require('../logger'); 
+
 router.use(authenticate(STRATEGY));
 
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
@@ -131,8 +133,8 @@ router.delete('/fragments/:id', async (req, res) => {
 
   try {
     await Fragment.delete(ownerId, id);
-  } catch (e) {
-    // logger?.warn({ e, ownerId, id }, 'delete threw but resource existed; returning 200');
+  } catch (err) {
+    logger.warn({ err, ownerId, id }, 'delete threw but resource existed; returning 200'); // ✅ e 사용
   }
 
   return res.status(200).json(createSuccessResponse());
