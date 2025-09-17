@@ -7,7 +7,7 @@
     "lint": "eslint \"./src/**/*.js\" \"tests/**/*.js\"",
     "test": "cross-env AUTH_STRATEGY=http jest --runInBand",
     "test:watch": "cross-env AUTH_STRATEGY=http jest --watch",
-    "coverage": "cross-env AUTH_STRATEGY=http jest --coverage --runInBand",
+    "coverage": "cross-env AUTH_STRATEGY=http jest --runInBand --coverage --coverageReporters=text",
     "start": "node src/server.js",
     "dev": "node --env-file=debug.env --watch ./src/server.js",
     "debug": "node --env-file=debug.env --inspect=0.0.0.0:9229 --watch ./src/server.js"

@@ -1,0 +1,11 @@
+tests/
+!tests/.htpasswd
+node_modules/
+coverage/
+.vscode/
+.github/
+.git/
+.env
+.prettier*
+eslint.config.mjs
+fragments-*.tgz
