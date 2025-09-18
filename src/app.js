@@ -39,8 +39,6 @@ app.get('/', (req, res) => {
     );
 });
 
-app.use('/v1', v1);
-
 app.get('/v1/info', (req, res) => {
   res.status(200).json(
     createSuccessResponse({
@@ -51,6 +49,8 @@ app.get('/v1/info', (req, res) => {
     })
   );
 });
+
+app.use('/v1', v1);
 
 
 // 404
