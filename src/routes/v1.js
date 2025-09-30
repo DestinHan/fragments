@@ -11,13 +11,10 @@ const router = express.Router();
 const STRATEGY = process.env.AUTH_STRATEGY === 'http' ? 'http' : 'bearer';
 const md = new MarkdownIt();
 
-// ────────────────────────────────────────────────────────────────
-// CORS 프리플라이트(OPTIONS)를 인증 없이 통과시키기
-// ※ 이 라우트들은 반드시 authenticate() "이전"에 둔다
-router.options('*', (req, res) => res.sendStatus(204));
-// ────────────────────────────────────────────────────────────────
-
+// 인증 미들웨어 (preflight는 app.js에서 처리)
 router.use(authenticate(STRATEGY));
+
+// raw body 파서
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
 function getOwnerId(req) {
@@ -69,6 +66,7 @@ router.get('/fragments', async (req, res) => {
   try {
     const ownerId = getOwnerId(req);
     if (!ownerId) return res.status(401).json(createErrorResponse(401, 'Unauthorized'));
+
     const expand = req.query.expand === '1';
     const result = await Fragment.byUser(ownerId, expand);
     return res.status(200).json(createSuccessResponse({ fragments: result }));
@@ -79,7 +77,7 @@ router.get('/fragments', async (req, res) => {
 
 /**
  * GET /v1/fragments/:id.html
- * text/markdown -> text/html
+ * text/markdown -> text/html 변환
  */
 router.get('/fragments/:id.:ext', async (req, res) => {
   const ownerId = getOwnerId(req);
@@ -114,7 +112,7 @@ router.get('/fragments/:id', async (req, res) => {
     const frag = await Fragment.byId(ownerId, id);
     const data = await frag.getData();
     if (!data) return res.status(404).json(createErrorResponse(404, 'not found'));
-    res.setHeader('Content-Type', `${frag.type}`);
+    res.setHeader('Content-Type', frag.type);
     return res.status(200).send(data);
   } catch {
     return res.status(404).json(createErrorResponse(404, 'not found'));
