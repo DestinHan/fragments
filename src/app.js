@@ -1,3 +1,4 @@
+// src/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -23,6 +24,8 @@ const corsOptions = {
   origin: ['http://localhost:1234', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  // ▼ 브라우저에서 읽게 허용할 응답 헤더
+  exposedHeaders: ['Location', 'ETag', 'Content-Type'],
   optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
