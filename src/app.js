@@ -15,17 +15,25 @@ const v1 = require('./routes/v1');
 
 const app = express();
 
+// logging
 app.use(pino);
-app.use(helmet());
+
+// ⚠️ CORS는 라우터보다 "반드시 먼저" 등록
 app.use(
   cors({
     origin: ['http://localhost:1234', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+// 모든 경로에 대한 프리플라이트 허용
+app.options('*', cors());
+
+app.use(helmet());
 app.use(compression());
 app.use(passport.initialize());
 
-// Health check
+// Health/root
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res
@@ -39,6 +47,7 @@ app.get('/', (req, res) => {
     );
 });
 
+// Info
 app.get('/v1/info', (req, res) => {
   res.status(200).json(
     createSuccessResponse({
@@ -50,8 +59,8 @@ app.get('/v1/info', (req, res) => {
   );
 });
 
+// API v1
 app.use('/v1', v1);
-
 
 // 404
 app.use((req, res) => {

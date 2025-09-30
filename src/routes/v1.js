@@ -1,19 +1,23 @@
 const express = require('express');
+const MarkdownIt = require('markdown-it');
 
 const { Fragment } = require('../model/fragment');
 const { createSuccessResponse, createErrorResponse } = require('../response');
 const hash = require('../hash');
-
 const authenticate = require('../auth/auth-middleware');
+const logger = require('../logger');
 
 const router = express.Router();
-
 const STRATEGY = process.env.AUTH_STRATEGY === 'http' ? 'http' : 'bearer';
+const md = new MarkdownIt();
 
-const logger = require('../logger'); 
+// ────────────────────────────────────────────────────────────────
+// CORS 프리플라이트(OPTIONS)를 인증 없이 통과시키기
+// ※ 이 라우트들은 반드시 authenticate() "이전"에 둔다
+router.options('*', (req, res) => res.sendStatus(204));
+// ────────────────────────────────────────────────────────────────
 
 router.use(authenticate(STRATEGY));
-
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
 function getOwnerId(req) {
@@ -27,9 +31,7 @@ function getOwnerId(req) {
 router.post('/fragments', async (req, res, next) => {
   try {
     const ownerId = getOwnerId(req);
-    if (!ownerId) {
-      return res.status(401).json(createErrorResponse(401, 'Unauthorized'));
-    }
+    if (!ownerId) return res.status(401).json(createErrorResponse(401, 'Unauthorized'));
 
     const type = req.headers['content-type'];
     if (!Fragment.isSupportedType(type)) {
@@ -66,15 +68,40 @@ router.post('/fragments', async (req, res, next) => {
 router.get('/fragments', async (req, res) => {
   try {
     const ownerId = getOwnerId(req);
-    if (!ownerId) {
-      return res.status(401).json(createErrorResponse(401, 'Unauthorized'));
-    }
-
+    if (!ownerId) return res.status(401).json(createErrorResponse(401, 'Unauthorized'));
     const expand = req.query.expand === '1';
     const result = await Fragment.byUser(ownerId, expand);
     return res.status(200).json(createSuccessResponse({ fragments: result }));
   } catch {
     return res.status(500).json(createErrorResponse(500, 'unable to process request'));
+  }
+});
+
+/**
+ * GET /v1/fragments/:id.html
+ * text/markdown -> text/html
+ */
+router.get('/fragments/:id.:ext', async (req, res) => {
+  const ownerId = getOwnerId(req);
+  const { id, ext } = req.params;
+
+  try {
+    const frag = await Fragment.byId(ownerId, id);
+    const data = await frag.getData();
+    if (!data) return res.status(404).json(createErrorResponse(404, 'not found'));
+
+    if (ext === 'html') {
+      if (frag.mimeType !== 'text/markdown') {
+        return res.status(415).json(createErrorResponse(415, 'unsupported conversion'));
+      }
+      const html = md.render(data.toString('utf8'));
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      return res.status(200).send(html);
+    }
+
+    return res.status(415).json(createErrorResponse(415, 'unsupported conversion'));
+  } catch {
+    return res.status(404).json(createErrorResponse(404, 'not found'));
   }
 });
 
@@ -86,10 +113,8 @@ router.get('/fragments/:id', async (req, res) => {
   try {
     const frag = await Fragment.byId(ownerId, id);
     const data = await frag.getData();
-    if (!data) {
-      return res.status(404).json(createErrorResponse(404, 'not found'));
-    }
-    res.setHeader('Content-Type', frag.type);
+    if (!data) return res.status(404).json(createErrorResponse(404, 'not found'));
+    res.setHeader('Content-Type', `${frag.type}`);
     return res.status(200).send(data);
   } catch {
     return res.status(404).json(createErrorResponse(404, 'not found'));
@@ -134,11 +159,10 @@ router.delete('/fragments/:id', async (req, res) => {
   try {
     await Fragment.delete(ownerId, id);
   } catch (err) {
-    logger.warn({ err, ownerId, id }, 'delete threw but resource existed; returning 200'); // ✅ e 사용
+    logger.warn({ err, ownerId, id }, 'delete threw but resource existed; returning 200');
   }
 
   return res.status(200).json(createSuccessResponse());
 });
-
 
 module.exports = router;
