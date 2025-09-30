@@ -6,6 +6,8 @@ coverage/
 .github/
 .git/
 .env
+debug.env
 .prettier*
 eslint.config.mjs
 fragments-*.tgz
+.DS_Store
