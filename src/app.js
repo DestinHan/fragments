@@ -19,15 +19,15 @@ const app = express();
 app.use(pino);
 
 // ⚠️ CORS는 라우터보다 "반드시 먼저" 등록
-app.use(
-  cors({
-    origin: ['http://localhost:1234', 'http://localhost:3000'],
-    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
-// 모든 경로에 대한 프리플라이트 허용
-app.options('*', cors());
+const corsOptions = {
+  origin: ['http://localhost:1234', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204,
+};
+app.use(cors(corsOptions));
+// Express 5: '*' 대신 정규식 사용
+app.options(/.*/, cors(corsOptions));
 
 app.use(helmet());
 app.use(compression());
