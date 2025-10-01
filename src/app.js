@@ -1,4 +1,3 @@
-// src/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -16,27 +15,22 @@ const v1 = require('./routes/v1');
 
 const app = express();
 
-// logging
 app.use(pino);
 
-// ⚠️ CORS는 라우터보다 "반드시 먼저" 등록
 const corsOptions = {
   origin: ['http://localhost:1234', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  // ▼ 브라우저에서 읽게 허용할 응답 헤더
   exposedHeaders: ['Location', 'ETag', 'Content-Type'],
   optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
-// Express 5: '*' 대신 정규식 사용
 app.options(/.*/, cors(corsOptions));
 
 app.use(helmet());
 app.use(compression());
 app.use(passport.initialize());
 
-// Health/root
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res
@@ -50,7 +44,6 @@ app.get('/', (req, res) => {
     );
 });
 
-// Info
 app.get('/v1/info', (req, res) => {
   res.status(200).json(
     createSuccessResponse({
@@ -62,10 +55,8 @@ app.get('/v1/info', (req, res) => {
   );
 });
 
-// API v1
 app.use('/v1', v1);
 
-// 404
 app.use((req, res) => {
   res.status(404).json(createErrorResponse(404, 'not found'));
 });
