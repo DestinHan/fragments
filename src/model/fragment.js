@@ -82,18 +82,14 @@ class Fragment {
     await this.save();
   }
 
-  // "text/markdown; charset=utf-8" → "text/markdown"
   get mimeType() {
     return normalizeMime(this.type);
   }
 
-  // 텍스트 계열 여부
   get isText() {
     return this.mimeType.startsWith('text/');
   }
 
-  // 이 프래그먼트가 지원하는 반환 포맷 목록
-  // (라우터에서 .html 변환 등에 사용)
   get formats() {
     if (this.mimeType === 'text/markdown') {
       return ['text/markdown', 'text/html', 'text/plain'];
