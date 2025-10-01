@@ -10,7 +10,8 @@
     "coverage": "cross-env AUTH_STRATEGY=http jest --runInBand --coverage --coverageReporters=text",
     "start": "node src/server.js",
     "dev": "node --env-file=debug.env --watch ./src/server.js",
-    "debug": "node --env-file=debug.env --inspect=0.0.0.0:9229 --watch ./src/server.js"
+    "debug": "node --env-file=debug.env --inspect=0.0.0.0:9229 --watch ./src/server.js",
+    "test:integration": "hurl --test --glob \"tests/integration/**/*.hurl\""
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,7 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "@eslint/js": "^9.34.0",
+    "@orangeopensource/hurl": "^5.0.1",
     "cross-env": "^10.0.0",
     "eslint": "^9.34.0",
     "globals": "^16.3.0",
