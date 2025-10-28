@@ -36,10 +36,9 @@ function readFragmentData(ownerId, id) {
 
 // Get a list of fragment ids/objects for the given user from memory db. Returns a Promise
 async function listFragments(ownerId, expand = false) {
-  const values = await metadata.query(ownerId); // MemoryDB.query() → values 배열(대개 JSON 문자열들)
+  const values = await metadata.query(ownerId);
   if (!Array.isArray(values) || values.length === 0) return [];
 
-  // 문자열이면 객체로 파싱
   const parsed = values
     .map((v) => {
       if (typeof v === 'string') {
@@ -49,14 +48,12 @@ async function listFragments(ownerId, expand = false) {
           return undefined;
         }
       }
-      return v; // 이미 객체면 그대로
+      return v;
     })
     .filter(Boolean);
 
-  // expand=true면 전체 메타데이터 객체 배열 반환
   if (expand) return parsed;
 
-  // expand=false면 id만 추출
   return parsed.map((frag) => frag && frag.id).filter(Boolean);
 }
 

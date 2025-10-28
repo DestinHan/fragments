@@ -14,7 +14,7 @@ const SUPPORTED_TYPES = ['text/plain', 'text/markdown', 'application/json'];
 
 function normalizeMime(value) {
   const { type } = contentType.parse(value);
-  return type;
+  return type.toLowerCase();
 }
 
 class Fragment {
@@ -35,7 +35,7 @@ class Fragment {
 
     this.id = id || randomUUID();
     this.ownerId = ownerId;
-    this.type = type;
+    this.type = type;    
     this.size = size;
     this.created = created || now;
     this.updated = updated || now;
@@ -46,6 +46,7 @@ class Fragment {
     if (expand) return list.map((m) => new Fragment(m));
     return list;
   }
+
   static async byId(ownerId, id) {
     const meta = await readFragment(ownerId, id);
     if (!meta) {
