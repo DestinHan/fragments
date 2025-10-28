@@ -1,3 +1,4 @@
+// app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -31,6 +32,7 @@ app.use(helmet());
 app.use(compression());
 app.use(passport.initialize());
 
+// --- Public (no auth) endpoints ---
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res
@@ -44,6 +46,11 @@ app.get('/', (req, res) => {
     );
 });
 
+// ✅ ALB 헬스체크: 인증 없이 200 OK
+app.get('/v1/health', (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 app.get('/v1/info', (req, res) => {
   res.status(200).json(
     createSuccessResponse({
@@ -55,8 +62,10 @@ app.get('/v1/info', (req, res) => {
   );
 });
 
+// --- Protected (auth inside routes/v1) ---
 app.use('/v1', v1);
 
+// 404
 app.use((req, res) => {
   res.status(404).json(createErrorResponse(404, 'not found'));
 });
