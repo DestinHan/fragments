@@ -1,4 +1,3 @@
-// src/routes/v1.js
 const express = require('express');
 const MarkdownIt = require('markdown-it');
 
@@ -13,8 +12,6 @@ const STRATEGY = process.env.AUTH_STRATEGY === 'http' ? 'http' : 'bearer';
 const md = new MarkdownIt();
 
 router.get('/health', (req, res) => res.status(200).json({ ok: true }));
-
-router.options('*', (req, res) => res.sendStatus(204));
 
 router.use(authenticate(STRATEGY));
 
@@ -78,7 +75,7 @@ router.get('/fragments', async (req, res) => {
   }
 });
 
-// GET /v1/fragments/:id.:ext
+// GET /v1/fragments/:id.:ext (markdown -> html)
 router.get('/fragments/:id.:ext', async (req, res) => {
   const ownerId = getOwnerId(req);
   const { id, ext } = req.params;
@@ -103,7 +100,7 @@ router.get('/fragments/:id.:ext', async (req, res) => {
   }
 });
 
-// GET /v1/fragments/:id
+// GET /v1/fragments/:id 
 router.get('/fragments/:id', async (req, res) => {
   const ownerId = getOwnerId(req);
   const { id } = req.params;
@@ -119,7 +116,7 @@ router.get('/fragments/:id', async (req, res) => {
   }
 });
 
-// GET /v1/fragments/:id/info
+// GET /v1/fragments/:id/info 
 router.get('/fragments/:id/info', async (req, res) => {
   const ownerId = getOwnerId(req);
   const { id } = req.params;
