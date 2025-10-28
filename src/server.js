@@ -3,7 +3,6 @@ require('dotenv').config({ path: './debug.env' });
 const stoppable = require('stoppable');
 const logger = require('./logger');
 const app = require('./app');
-const express = require('express');
 
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
