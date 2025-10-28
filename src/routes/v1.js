@@ -1,3 +1,4 @@
+// src/routes/v1.js
 const express = require('express');
 const MarkdownIt = require('markdown-it');
 
@@ -11,10 +12,10 @@ const router = express.Router();
 const STRATEGY = process.env.AUTH_STRATEGY === 'http' ? 'http' : 'bearer';
 const md = new MarkdownIt();
 
-router.get('/health', (req, res) => res.status(200).json({ ok: true }));
-
+// ✅ v1 라우트는 전부 인증 필요 (헬스는 app.js에서 무인증으로 처리)
 router.use(authenticate(STRATEGY));
 
+// 원본/raw 바디 필요: /v1/fragments (최대 5MB)
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
 function getOwnerId(req) {
@@ -100,7 +101,7 @@ router.get('/fragments/:id.:ext', async (req, res) => {
   }
 });
 
-// GET /v1/fragments/:id 
+// GET /v1/fragments/:id
 router.get('/fragments/:id', async (req, res) => {
   const ownerId = getOwnerId(req);
   const { id } = req.params;
@@ -116,7 +117,7 @@ router.get('/fragments/:id', async (req, res) => {
   }
 });
 
-// GET /v1/fragments/:id/info 
+// GET /v1/fragments/:id/info
 router.get('/fragments/:id/info', async (req, res) => {
   const ownerId = getOwnerId(req);
   const { id } = req.params;
