@@ -17,7 +17,7 @@ jobs:
   push-to-ecr:
     runs-on: ubuntu-latest
     outputs:
-      image-uri: ${{ steps.build.outputs.image }}
+      image-uri: ${{ steps.image.outputs.image }}
     steps:
       - name: Check out
         uses: actions/checkout@v4
@@ -35,19 +35,25 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push image
-        id: build
         uses: docker/build-push-action@v6
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPO: ${{ env.ECR_REPOSITORY }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
           VERSION_TAG: ${{ github.ref_name }}
         with:
           context: .
           file: ./Dockerfile
           push: true
           tags: |
-            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.VERSION_TAG }}
-          outputs: type=image,name=${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ github.ref_name }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
+
+      - name: Set image URI output
+        id: image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
+          VERSION_TAG: ${{ github.ref_name }}
+        run: echo "image=${ECR_REGISTRY}/${ECR_REPOSITORY}:${VERSION_TAG}" >> $GITHUB_OUTPUT
 
   deploy-ecs:
     runs-on: ubuntu-latest
