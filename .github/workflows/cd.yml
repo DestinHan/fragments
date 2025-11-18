@@ -8,8 +8,8 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: fragments
-  ECS_CLUSTER: fragments
-  ECS_SERVICE: fragments
+  ECS_CLUSTER: fragments-cluster
+  ECS_SERVICE: fragments-service
   TASK_DEF: fragments-definition.json
   CONTAINER_NAME: fragments
   AWS_ACCOUNT_ID: 471112953885
