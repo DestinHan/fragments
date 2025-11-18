@@ -11,7 +11,9 @@
       "name": "fragments",
       "image": "471112953885.dkr.ecr.us-east-1.amazonaws.com/fragments:latest",
       "essential": true,
-      "portMappings": [{ "containerPort": 8080, "protocol": "tcp" }],
+      "portMappings": [
+        { "containerPort": 8080, "protocol": "tcp" }
+      ],
       "environment": [
         { "name": "NODE_ENV", "value": "production" },
         { "name": "LOG_LEVEL", "value": "info" },
@@ -29,7 +31,10 @@
         }
       },
       "healthCheck": {
-        "command": ["CMD-SHELL", "wget -qO- http://localhost:8080/v1/health || exit 1"],
+        "command": [
+          "CMD-SHELL",
+          "wget -qO- http://localhost:8080/v1/health || exit 1"
+        ],
         "interval": 30,
         "timeout": 5,
         "retries": 3,
