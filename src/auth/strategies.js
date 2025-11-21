@@ -4,9 +4,9 @@ const { BasicStrategy } = require('passport-http');
 const { Strategy: BearerStrategy } = require('passport-http-bearer');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
-// ------------------------------
-// 1) HTTP Basic strategy (로컬 용)
-// ------------------------------
+// --------------------------------------------------
+// 1) HTTP Basic strategy (로컬 / Lab1-8용)
+// --------------------------------------------------
 passport.use(
   'http',
   new BasicStrategy((email, password, done) => {
@@ -17,68 +17,95 @@ passport.use(
   })
 );
 
-// ------------------------------
-// 2) Cognito Bearer strategy (배포 환경)
-// ------------------------------
+// --------------------------------------------------
+// 2) Cognito Bearer strategy (Lab9 이후 ECS용)
+//    - id_token 이든 access_token 이든 둘 다 허용
+// --------------------------------------------------
 const userPoolId = process.env.AWS_COGNITO_POOL_ID;
 const clientId = process.env.AWS_COGNITO_CLIENT_ID;
 
-let verifier = null;
+let idVerifier = null;
+let accessVerifier = null;
 
-// 환경변수 존재 여부 로그
-console.log('[auth] Loading Cognito config:', {
+// 환경변수 확인용 로그
+console.log('[auth] Cognito config:', {
   userPoolId,
   clientId,
 });
 
 if (userPoolId && clientId) {
-  verifier = CognitoJwtVerifier.create({
+  // id_token 검증용
+  idVerifier = CognitoJwtVerifier.create({
     userPoolId,
     clientId,
-    tokenUse: 'access', // ⭐ OIDC access_token 검증 (중요)
+    tokenUse: 'id',
   });
 
-  console.log('[auth] Cognito verifier initialized successfully');
+  // access_token 검증용
+  accessVerifier = CognitoJwtVerifier.create({
+    userPoolId,
+    clientId,
+    tokenUse: 'access',
+  });
+
+  console.log('[auth] Cognito verifiers initialized (id + access)');
 } else {
   console.warn(
-    '[auth] Missing AWS_COGNITO_POOL_ID or AWS_COGNITO_CLIENT_ID -> Bearer tokens cannot be verified'
+    '[auth] AWS_COGNITO_POOL_ID / AWS_COGNITO_CLIENT_ID not set → bearer auth will always fail'
   );
 }
 
-// ------------------------------
-// 3) Bearer strategy 등록 (항상 등록되어야 함)
-// ------------------------------
+// Bearer 전략은 무조건 등록
 passport.use(
   'bearer',
   new BearerStrategy(async (token, done) => {
-    // Cognito verifier 가 없으면 인증 불가 → false
-    if (!verifier) {
-      console.warn('[auth] No verifier loaded → rejecting token');
+    if (!idVerifier && !accessVerifier) {
+      console.warn('[auth] No Cognito verifiers → rejecting bearer token');
       return done(null, false);
     }
 
-    try {
-      const payload = await verifier.verify(token);
+    let payload = null;
 
-      // 통일된 사용자 객체 반환
-      const user = {
-        sub: payload.sub,
-        email: payload.email,
-        username: payload['cognito:username'],
-      };
+    // 1) id_token 으로 시도
+    if (idVerifier) {
+      try {
+        payload = await idVerifier.verify(token);
+        console.log('[auth] Verified as id_token');
+      } catch (err) {
+        // 무시하고 access_token으로 재시도
+      }
+    }
 
-      console.log('[auth] Token verified OK for user:', user.email);
+    // 2) access_token 으로 시도
+    if (!payload && accessVerifier) {
+      try {
+        payload = await accessVerifier.verify(token);
+        console.log('[auth] Verified as access_token');
+      } catch (err) {
+        console.warn(
+          '[auth] Token verification failed for both id/access:',
+          err?.message || err
+        );
+        return done(null, false);
+      }
+    }
 
-      return done(null, user);
-    } catch (err) {
-      console.warn(
-        '[auth] Cognito token verification failed:',
-        err?.message || err
-      );
+    if (!payload) {
+      // 둘 다 실패한 경우
       return done(null, false);
     }
+
+    // 통합된 user 객체
+    const user = {
+      sub: payload.sub,
+      email: payload.email,
+      username: payload['cognito:username'],
+    };
+
+    console.log('[auth] Authenticated user:', user.email || user.sub);
+    return done(null, user);
   })
 );
 
-// 이 파일은 전략 등록만 수행하므로 export 없음
+// 이 파일은 전략 등록만 담당
 module.exports = {};
