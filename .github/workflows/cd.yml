@@ -76,6 +76,9 @@ jobs:
             AUTH_STRATEGY=bearer
             AWS_REGION=${{ secrets.AWS_REGION }}
             AWS_S3_BUCKET_NAME=fragments-seunghoonhan
+            AWS_COGNITO_REGION=us-east-1
+            AWS_COGNITO_POOL_ID=us-east-1_BeSfQw7NW
+            AWS_COGNITO_CLIENT_ID=2pi7e9jnjo3hgb1mm501n7ou51
 
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

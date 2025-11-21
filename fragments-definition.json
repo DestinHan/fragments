@@ -20,7 +20,10 @@
         { "name": "PORT", "value": "8080" },
         { "name": "AWS_REGION", "value": "us-east-1" },
         { "name": "AWS_S3_BUCKET_NAME", "value": "fragments-seunghoonhan" },
-        { "name": "AUTH_STRATEGY", "value": "http" }
+        { "name": "AUTH_STRATEGY", "value": "bearer" },
+        { "name": "AWS_COGNITO_REGION", "value": "us-east-1" },
+        { "name": "AWS_COGNITO_POOL_ID", "value": "us-east-1_BeSfQw7NW" },
+        { "name": "AWS_COGNITO_CLIENT_ID", "value": "2pi7e9jnjo3hgb1mm501n7ou51" }
       ],
       "logConfiguration": {
         "logDriver": "awslogs",
