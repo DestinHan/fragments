@@ -73,7 +73,7 @@ jobs:
           image: 471112953885.dkr.ecr.us-east-1.amazonaws.com/fragments:${{ github.ref_name }}
           environment-variables: |
             LOG_LEVEL=info
-            AUTH_STRATEGY=bearer
+            AUTH_STRATEGY=http
             AWS_REGION=${{ secrets.AWS_REGION }}
             AWS_S3_BUCKET_NAME=fragments-seunghoonhan
 
