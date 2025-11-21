@@ -25,7 +25,7 @@ if (userPoolId && clientId) {
   verifier = CognitoJwtVerifier.create({
     userPoolId,
     clientId,
-    tokenUse: 'id',
+    tokenUse: 'access',
   });
   console.log('[auth] Cognito verifier initialized', { userPoolId, clientId });
 } else {
