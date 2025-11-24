@@ -34,6 +34,8 @@ jobs:
     needs: [lint, dockerfile-lint]
     env:
       AUTH_STRATEGY: http
+      BASIC_USER: user
+      BASIC_PASS: pass
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -43,16 +45,16 @@ jobs:
           cache-dependency-path: 'package-lock.json'
       - run: npm ci
       - run: npm test
+      - name: Coverage (log only)
+        run: npm run coverage
 
-  # ---------------------------
-  # ⭐ NEW — Integration Tests
-  # ---------------------------
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: [unit-tests]
+    needs: [lint, dockerfile-lint, unit-tests]
+
     steps:
-      - name: Check out repository
+      - name: Check out code
         uses: actions/checkout@v4
 
       - name: Set up Node
@@ -60,19 +62,39 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: 'package-lock.json'
 
-      - name: Install Node dependencies
-        run: npm install
+      - name: Install node dependencies
+        run: npm ci
 
-      - name: Start containers (LocalStack + DynamoDB Local + Fragments)
+      # Hurl 설치 (GitHub 러너에 바이너리 깔기)
+      - name: Install Hurl
+        run: |
+          curl -sSL https://github.com/Orange-OpenSource/hurl/releases/download/4.2.0/hurl_4.2.0_amd64.deb -o hurl.deb
+          sudo dpkg -i hurl.deb
+
+      # 로컬 AWS (LocalStack + DynamoDB Local) 와 fragments 컨테이너 띄우기
+      - name: Start docker compose (fragments + local AWS)
         run: docker compose up -d
 
-      - name: Setup Local AWS resources (S3 + DynamoDB table)
+      # 버킷 / 테이블 생성 (로컬에서 네가 직접 aws cli로 했던 걸 스크립트가 대신 함)
+      - name: Setup Local AWS Resources
         run: ./scripts/local-aws-setup.sh
 
+      # Hurl 통합 테스트 실행
       - name: Run Hurl integration tests
         run: npm run test:integration
 
+      # 실패했을 때 디버깅용으로 fragments 컨테이너 로그 뽑기
+      - name: Show fragments logs on failure
+        if: failure()
+        run: |
+          echo "==== docker ps ===="
+          docker ps
+          echo "==== fragments logs ===="
+          docker logs $(docker ps -q --filter "name=fragments-fragments") || true
+
+      # 항상 컨테이너 정리
       - name: Stop containers
         if: always()
         run: docker compose down
@@ -80,10 +102,10 @@ jobs:
   docker-hub:
     name: Build and Push to Docker Hub
     runs-on: ubuntu-latest
-    needs: [integration-tests]
+    # 🔴 이제 통합 테스트까지 통과해야 Docker Hub에 push 됨
+    needs: [lint, dockerfile-lint, unit-tests, integration-tests]
     permissions:
       contents: read
-
     steps:
       - uses: actions/checkout@v4
 
