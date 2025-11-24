@@ -52,12 +52,6 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: [lint, dockerfile-lint, unit-tests]
-    env:
-      # 로컬 AWS(LocalStack + DynamoDB Local)용 더미 크레덴셜 + 리전
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
-      AWS_SESSION_TOKEN: test
-      AWS_DEFAULT_REGION: us-east-1
 
     steps:
       - name: Check out code
@@ -73,49 +67,35 @@ jobs:
       - name: Install node dependencies
         run: npm ci
 
-      # Hurl 설치 (GitHub 러너에 바이너리 깔기)
       - name: Install Hurl
         run: |
           curl -sSL https://github.com/Orange-OpenSource/hurl/releases/download/4.2.0/hurl_4.2.0_amd64.deb -o hurl.deb
           sudo dpkg -i hurl.deb
 
-      # 로컬 AWS (LocalStack + DynamoDB Local) 와 fragments 컨테이너 띄우기
       - name: Start docker compose (fragments + local AWS)
         run: docker compose up -d
 
-      # 버킷 / 테이블 생성 (로컬에서 하던 걸 스크립트로 실행)
+      # AWS CLI 확실히 설치
+      - name: Install AWS CLI
+        uses: aws-actions/setup-cli@v2
+
+      # 네가 보내준 scripts/local-aws-setup.sh 사용
       - name: Setup Local AWS Resources
         run: ./scripts/local-aws-setup.sh
 
-      # 혹시 테이블이 안 만들어졌을 경우 대비해서 한 번 더 보장
+      # JS로 한 번 더 테이블 존재 확인 (없으면 생성)
       - name: Ensure DynamoDB table exists
-        run: |
-          echo "== DynamoDB Local tables (before) =="
-          aws dynamodb list-tables --endpoint-url http://localhost:8000 || true
+        run: node scripts/ensure-dynamo-table.js
+        env:
+          AWS_DYNAMO_ENDPOINT: http://localhost:8000
+          AWS_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          AWS_SESSION_TOKEN: test
 
-          echo "== Check/Create 'fragments' table on DynamoDB Local =="
-          aws dynamodb describe-table \
-            --table-name fragments \
-            --endpoint-url http://localhost:8000 \
-          || aws dynamodb create-table \
-            --table-name fragments \
-            --attribute-definitions \
-              AttributeName=ownerId,AttributeType=S \
-              AttributeName=id,AttributeType=S \
-            --key-schema \
-              AttributeName=ownerId,KeyType=HASH \
-              AttributeName=id,KeyType=RANGE \
-            --provisioned-throughput ReadCapacityUnits=10,WriteCapacityUnits=5 \
-            --endpoint-url http://localhost:8000
-
-          echo "== DynamoDB Local tables (after) =="
-          aws dynamodb list-tables --endpoint-url http://localhost:8000 || true
-
-      # Hurl 통합 테스트 실행
       - name: Run Hurl integration tests
         run: npm run test:integration
 
-      # 실패했을 때 디버깅용으로 fragments 컨테이너 로그 뽑기
       - name: Show fragments logs on failure
         if: failure()
         run: |
@@ -124,7 +104,6 @@ jobs:
           echo "==== fragments logs ===="
           docker logs $(docker ps -q --filter "name=fragments-fragments") || true
 
-      # 항상 컨테이너 정리
       - name: Stop containers
         if: always()
         run: docker compose down
@@ -132,7 +111,6 @@ jobs:
   docker-hub:
     name: Build and Push to Docker Hub
     runs-on: ubuntu-latest
-    # 🔴 이제 통합 테스트까지 통과해야 Docker Hub에 push 됨
     needs: [lint, dockerfile-lint, unit-tests, integration-tests]
     permissions:
       contents: read

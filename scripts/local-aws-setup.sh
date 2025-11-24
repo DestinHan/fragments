@@ -10,14 +10,15 @@ export AWS_DEFAULT_REGION=us-east-1
 
 echo 'Waiting for LocalStack S3...'
 until (curl --silent http://localhost:4566/_localstack/health | grep "\"s3\": \"\(running\|available\)\"" >/dev/null); do
+  echo "  still waiting for LocalStack..."
   sleep 3
 done
 echo 'LocalStack S3 Ready'
 
-echo "Creating LocalStack S3 bucket: fragments"
+echo "Creating LocalStack S3 bucket: fragments (if not exists)"
 aws --endpoint-url=http://localhost:4566 s3api create-bucket --bucket fragments || true
 
-echo "Creating DynamoDB-Local table: fragments"
+echo "Creating DynamoDB-Local table: fragments (if not exists)"
 aws --endpoint-url=http://localhost:8000 dynamodb create-table \
   --table-name fragments \
   --attribute-definitions AttributeName=ownerId,AttributeType=S AttributeName=id,AttributeType=S \
@@ -25,5 +26,6 @@ aws --endpoint-url=http://localhost:8000 dynamodb create-table \
   --provisioned-throughput ReadCapacityUnits=10,WriteCapacityUnits=5 \
   >/dev/null 2>&1 || true
 
+echo "Waiting for DynamoDB table 'fragments' to exist..."
 aws --endpoint-url=http://localhost:8000 dynamodb wait table-exists --table-name fragments
 echo "All local AWS resources are ready."
