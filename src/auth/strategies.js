@@ -1,10 +1,8 @@
-// src/auth/strategies.js
 const passport = require('passport');
 const { BasicStrategy } = require('passport-http');
 const { Strategy: BearerStrategy } = require('passport-http-bearer');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
-// --- HTTP Basic strategy (local) ---
 passport.use(
   'http',
   new BasicStrategy((email, password, done) => {

@@ -1,3 +1,7 @@
+// src/model/data/aws/index.js
+
+'use strict';
+
 const {
   PutObjectCommand,
   GetObjectCommand,
@@ -5,32 +9,118 @@ const {
 } = require('@aws-sdk/client-s3');
 
 const logger = require('../../../logger');
-const MemoryDB = require('../memory/memory-db');
 const s3 = require('./s3Client');
 
-const BUCKET = process.env.AWS_S3_BUCKET_NAME;
+// ✅ DynamoDB Document Client + Commands
+// ddbDocClient.js 가 `module.exports = ddbDocClient;` 로 export 되어있다고 가정
+const ddbDocClient = require('./ddbDocClient');
+const {
+  PutCommand,
+  GetCommand,
+  QueryCommand,
+  DeleteCommand,
+} = require('@aws-sdk/lib-dynamodb');
 
-// 메타데이터 저장용 메모리 DB (문자열 직렬화 X: memory/index.js와 호환되게 객체 그대로 저장해도 됨)
-const metadata = new MemoryDB();
+// env 없을 때도 안전하게 기본값 사용
+const BUCKET = process.env.AWS_S3_BUCKET_NAME || 'fragments';
+const TABLE_NAME = process.env.AWS_DYNAMODB_TABLE_NAME || 'fragments';
 
-// --- 메타데이터 ---
+logger.debug(
+  { BUCKET, TABLE_NAME },
+  'AWS data layer configured (S3 bucket / DynamoDB table)'
+);
+
+// =======================
+// 메타데이터 (DynamoDB)
+// =======================
+
+// fragmentMeta: { ownerId, id, created, updated, type, size }
 async function writeFragment(fragmentMeta) {
-  const { ownerId, id } = fragmentMeta;
-  return metadata.put(ownerId, id, fragmentMeta);
+  if (!TABLE_NAME) {
+    const e = new Error('AWS_DYNAMODB_TABLE_NAME is not set');
+    logger.error({ e }, 'DynamoDB table name missing');
+    throw e;
+  }
+
+  const params = {
+    TableName: TABLE_NAME,
+    Item: fragmentMeta,
+  };
+
+  const command = new PutCommand(params);
+
+  try {
+    await ddbDocClient.send(command);
+    // 기존 MemoryDB 버전처럼, 저장한 meta 그대로 리턴
+    return fragmentMeta;
+  } catch (err) {
+    logger.error(
+      { err, params, fragmentMeta },
+      'error writing fragment metadata to DynamoDB'
+    );
+    throw err;
+  }
 }
 
+// Reads a fragment from DynamoDB. Returns a Promise<fragment|undefined>
 async function readFragment(ownerId, id) {
-  return metadata.get(ownerId, id);
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { ownerId, id },
+  };
+
+  const command = new GetCommand(params);
+
+  try {
+    const data = await ddbDocClient.send(command);
+    // 없으면 data.Item 이 undefined
+    return data?.Item;
+  } catch (err) {
+    logger.warn({ err, params }, 'error reading fragment from DynamoDB');
+    throw err;
+  }
 }
 
+// Get a list of fragments, either ids-only, or full Objects, for the given user.
 async function listFragments(ownerId, expand = false) {
-  const values = await metadata.query(ownerId);
-  if (!Array.isArray(values) || values.length === 0) return [];
-  if (expand) return values;
-  return values.map((m) => m && m.id).filter(Boolean);
+  const params = {
+    TableName: TABLE_NAME,
+    KeyConditionExpression: 'ownerId = :ownerId',
+    ExpressionAttributeValues: {
+      ':ownerId': ownerId,
+    },
+  };
+
+  // expand=false 이면 id만 가져오기
+  if (!expand) {
+    params.ProjectionExpression = 'id';
+  }
+
+  const command = new QueryCommand(params);
+
+  try {
+    const data = await ddbDocClient.send(command);
+    const items = data?.Items || [];
+
+    if (!expand) {
+      // [ { id: '...' }, { id: '...' } ] → [ '...', '...' ]
+      return items.map((item) => item.id);
+    }
+
+    return items;
+  } catch (err) {
+    logger.error(
+      { err, params },
+      'error getting all fragments for user from DynamoDB'
+    );
+    throw err;
+  }
 }
 
-// --- 데이터(S3) ---
+// =======================
+// 데이터 (S3)
+// =======================
+
 const keyOf = (ownerId, id) => `${ownerId}/${id}`;
 
 async function streamToBuffer(stream) {
@@ -41,8 +131,21 @@ async function streamToBuffer(stream) {
 
 async function writeFragmentData(ownerId, id, buffer) {
   const Key = keyOf(ownerId, id);
+
+  if (!BUCKET) {
+    const e = new Error('AWS_S3_BUCKET_NAME is not set');
+    logger.error({ e }, 'S3 bucket name missing');
+    throw e;
+  }
+
   try {
-    await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key, Body: buffer }));
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: BUCKET,
+        Key,
+        Body: buffer,
+      })
+    );
   } catch (err) {
     logger.error({ err, bucket: BUCKET, key: Key }, 'S3 PutObject failed');
     throw new Error('unable to upload fragment data');
@@ -51,8 +154,20 @@ async function writeFragmentData(ownerId, id, buffer) {
 
 async function readFragmentData(ownerId, id) {
   const Key = keyOf(ownerId, id);
+
+  if (!BUCKET) {
+    const e = new Error('AWS_S3_BUCKET_NAME is not set');
+    logger.error({ e }, 'S3 bucket name missing (read)');
+    throw e;
+  }
+
   try {
-    const out = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key }));
+    const out = await s3.send(
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key,
+      })
+    );
     return await streamToBuffer(out.Body);
   } catch (err) {
     // 없거나 권한 문제일 수 있음: 상위에서 404를 내므로 undefined 반환
@@ -62,7 +177,7 @@ async function readFragmentData(ownerId, id) {
 }
 
 async function deleteFragment(ownerId, id) {
-  // 존재 확인 (라우터에서 이미 404 체크하지만 방어적으로)
+  // 1) 먼저 메타데이터 존재 여부 확인 (라우터에서 404 처리용)
   const meta = await readFragment(ownerId, id);
   if (!meta) {
     const e = new Error('not found');
@@ -70,15 +185,46 @@ async function deleteFragment(ownerId, id) {
     throw e;
   }
 
+  // 2) S3 데이터 삭제
   const Key = keyOf(ownerId, id);
-  try {
-    await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key }));
-  } catch (err) {
-    // 객체 없을 가능성 → 경고만 하고 메타 삭제 계속
-    logger.warn({ err, bucket: BUCKET, key: Key }, 'S3 DeleteObject failed (ignored)');
+
+  if (!BUCKET) {
+    const e = new Error('AWS_S3_BUCKET_NAME is not set');
+    logger.error({ e }, 'S3 bucket name missing (delete)');
+    throw e;
   }
 
-  await metadata.del(ownerId, id);
+  try {
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: BUCKET,
+        Key,
+      })
+    );
+  } catch (err) {
+    // 객체 없을 가능성 → 경고만 찍고 계속 진행
+    logger.warn(
+      { err, bucket: BUCKET, key: Key },
+      'S3 DeleteObject failed (ignored)'
+    );
+  }
+
+  // 3) DynamoDB 메타데이터 삭제
+  const params = {
+    TableName: TABLE_NAME,
+    Key: { ownerId, id },
+  };
+  const command = new DeleteCommand(params);
+
+  try {
+    await ddbDocClient.send(command);
+  } catch (err) {
+    logger.error(
+      { err, params },
+      'error deleting fragment metadata from DynamoDB'
+    );
+    throw err;
+  }
 }
 
 module.exports = {
