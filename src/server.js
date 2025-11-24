@@ -1,12 +1,9 @@
+// src/server.js
 require('dotenv').config({ path: './debug.env' });
 
 const stoppable = require('stoppable');
 const logger = require('./logger');
 const app = require('./app');
-
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
-});
 
 const port = parseInt(process.env.PORT || '8080', 10);
 

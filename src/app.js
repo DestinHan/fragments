@@ -1,4 +1,4 @@
-// app.js
+// src/app.js
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -16,6 +16,7 @@ const v1 = require('./routes/v1');
 
 const app = express();
 
+// 공통 미들웨어
 app.use(pino);
 
 const corsOptions = {
@@ -32,6 +33,15 @@ app.use(helmet());
 app.use(compression());
 app.use(passport.initialize());
 
+/**
+ * 🔹 Health check (Docker HEALTHCHECK, CI에서 사용)
+ *  - http://localhost:8080/health
+ *  - 인증 필요 없음
+ */
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 // --- Public (no auth) endpoints ---
 app.get('/', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
@@ -46,7 +56,7 @@ app.get('/', (req, res) => {
     );
 });
 
-// ✅ ALB 헬스체크: 인증 없이 200 OK
+// ✅ ALB / 과제용 v1 health (integration test에서 쓰일 수 있음)
 app.get('/v1/health', (req, res) => {
   res.status(200).json({ ok: true });
 });
@@ -65,7 +75,7 @@ app.get('/v1/info', (req, res) => {
 // --- Protected (auth inside routes/v1) ---
 app.use('/v1', v1);
 
-// 404
+// 404 핸들러 (이건 항상 마지막에!)
 app.use((req, res) => {
   res.status(404).json(createErrorResponse(404, 'not found'));
 });
