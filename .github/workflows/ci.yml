@@ -101,14 +101,14 @@ jobs:
       - name: Run Hurl integration tests
         run: npm run test:integration
 
-      # 실패 시 fragments 로그 출력
+      # 실패 시 fragments 로그 출력 (최근 2000줄까지 넉넉히)
       - name: Show fragments logs on failure
         if: failure()
         run: |
           echo "==== docker ps ===="
           docker ps
           echo "==== fragments logs ===="
-          docker logs $(docker ps -q --filter "name=fragments-fragments") || true
+          docker logs --tail 2000 $(docker ps -q --filter "name=fragments-fragments") || true
 
       # 항상 컨테이너 정리
       - name: Stop containers

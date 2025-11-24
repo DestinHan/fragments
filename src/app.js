@@ -56,7 +56,7 @@ app.get('/', (req, res) => {
     );
 });
 
-// ✅ ALB / 과제용 v1 health (integration test에서 쓰일 수 있음)
+// ✅ ALB / 과제용 v1 health (필요하면 사용)
 app.get('/v1/health', (req, res) => {
   res.status(200).json({ ok: true });
 });
@@ -80,12 +80,18 @@ app.use((req, res) => {
   res.status(404).json(createErrorResponse(404, 'not found'));
 });
 
-// Error handler
+// 🔴 Error handler (500대 에러는 콘솔 + logger 둘 다에 상세 출력)
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   const status = err.status || 500;
   const message = err.message || 'unable to process request';
-  if (status > 499) logger.error({ err }, 'Error processing request');
+
+  if (status >= 500) {
+    // GitHub Actions 로그에서 보이도록 콘솔에도 찍기
+    console.error('❌ Unhandled server error:', err);
+    logger.error({ err }, 'Error processing request');
+  }
+
   res.status(status).json(createErrorResponse(status, message));
 });
 
