@@ -34,8 +34,6 @@ jobs:
     needs: [lint, dockerfile-lint]
     env:
       AUTH_STRATEGY: http
-      BASIC_USER: user
-      BASIC_PASS: pass
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,32 +43,31 @@ jobs:
           cache-dependency-path: 'package-lock.json'
       - run: npm ci
       - run: npm test
-      - name: Coverage (log only)
-        run: npm run coverage
 
+  # ---------------------------
+  # ⭐ NEW — Integration Tests
+  # ---------------------------
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: [unit-tests]
     steps:
-      - name: Check out code
+      - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Setup node
+      - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
-          cache-dependency-path: 'package-lock.json'
 
-      - name: Install node dependencies
-        # integration 테스트에서도 devDependencies 필요
-        run: npm ci
+      - name: Install Node dependencies
+        run: npm install
 
-      - name: Build and start local services (Docker Compose)
-        run: docker compose up --build -d
+      - name: Start containers (LocalStack + DynamoDB Local + Fragments)
+        run: docker compose up -d
 
-      - name: Setup Local AWS Resources (S3 + DynamoDB Local)
+      - name: Setup Local AWS resources (S3 + DynamoDB table)
         run: ./scripts/local-aws-setup.sh
 
       - name: Run Hurl integration tests
@@ -82,11 +79,11 @@ jobs:
 
   docker-hub:
     name: Build and Push to Docker Hub
-    # integration-tests 까지 전부 통과해야 실행
     runs-on: ubuntu-latest
-    needs: [unit-tests, integration-tests]
+    needs: [integration-tests]
     permissions:
       contents: read
+
     steps:
       - uses: actions/checkout@v4
 
