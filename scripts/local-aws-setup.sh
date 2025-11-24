@@ -8,17 +8,19 @@ export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
 export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-test}
 export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
 
+# ---------- S3 (LocalStack) 준비 ----------
 echo 'Waiting for LocalStack S3...'
 until (curl --silent http://localhost:4566/_localstack/health | grep "\"s3\": \"\(running\|available\)\"" >/dev/null); do
   sleep 3
 done
 echo '✅ LocalStack S3 Ready'
 
-echo "Creating LocalStack S3 bucket: fragments"
+echo "Creating LocalStack S3 bucket: fragments (idempotent)"
 aws --endpoint-url=http://localhost:4566 s3api create-bucket --bucket fragments >/dev/null 2>&1 || true
 echo "✅ S3 bucket 'fragments' ready"
 
-echo "Creating DynamoDB-Local table: fragments"
+# ---------- DynamoDB Local 준비 ----------
+echo "Creating DynamoDB-Local table: fragments (idempotent)"
 aws --endpoint-url=http://localhost:8000 dynamodb create-table \
   --table-name fragments \
   --attribute-definitions AttributeName=ownerId,AttributeType=S AttributeName=id,AttributeType=S \

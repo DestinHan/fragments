@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 // GitHub Actions 통합 테스트에서 DynamoDB Local 테이블이
-// 진짜 있는지 한 번 더 확인하고, 없으면 만들어주는 스크립트
+// 진짜 있는지 한 번 더 확인하고, 없으면 만들고,
+// 반드시 ACTIVE 상태가 될 때까지 기다리는 스크립트
 
 const {
   DynamoDBClient,
@@ -25,6 +26,31 @@ const client = new DynamoDBClient({
   },
 });
 
+async function waitForTableActive() {
+  console.log(`🔁 Waiting for DynamoDB table '${TABLE_NAME}' to be ACTIVE...`);
+  for (let i = 0; i < 15; i += 1) {
+    try {
+      const res = await client.send(
+        new DescribeTableCommand({ TableName: TABLE_NAME })
+      );
+      const status = res?.Table?.TableStatus;
+      console.log(`  - Describe attempt #${i + 1}: status = ${status}`);
+      if (status === "ACTIVE" || !status) {
+        console.log(`✅ Table '${TABLE_NAME}' is ACTIVE`);
+        return;
+      }
+    } catch (err) {
+      console.log(
+        `  - Describe attempt #${i + 1} failed (${err.name || err.message})`
+      );
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  throw new Error(
+    `❌ Table '${TABLE_NAME}' is not ACTIVE after waiting (endpoint=${ENDPOINT})`
+  );
+}
+
 async function ensureTable() {
   console.log(
     `Ensuring DynamoDB table '${TABLE_NAME}' exists at ${ENDPOINT} (region=${REGION})`
@@ -34,10 +60,7 @@ async function ensureTable() {
   const list = await client.send(new ListTablesCommand({}));
   if (list.TableNames && list.TableNames.includes(TABLE_NAME)) {
     console.log(`✅ Table '${TABLE_NAME}' already exists.`);
-    // describe 한 번 더 해서 진짜 접근 되는지 확인
-    await client.send(
-      new DescribeTableCommand({ TableName: TABLE_NAME })
-    );
+    await waitForTableActive();
     return;
   }
 
@@ -61,12 +84,7 @@ async function ensureTable() {
     })
   );
 
-  console.log("Waiting for table to be active...");
-  // DynamoDB Local에서는 보통 바로 됨, 하지만 안전하게 describe로 한 번 더
-  await client.send(
-    new DescribeTableCommand({ TableName: TABLE_NAME })
-  );
-
+  await waitForTableActive();
   console.log(`✅ Table '${TABLE_NAME}' created and ready.`);
 }
 

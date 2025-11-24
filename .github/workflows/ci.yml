@@ -58,6 +58,9 @@ jobs:
       AWS_SECRET_ACCESS_KEY: test
       AWS_SESSION_TOKEN: test
       AWS_DEFAULT_REGION: us-east-1
+      # ensure-dynamo-table.js 에서 사용할 endpoint
+      AWS_DYNAMODB_ENDPOINT: http://localhost:8000
+      AWS_DYNAMODB_TABLE_NAME: fragments
 
     steps:
       - name: Check out code
@@ -82,9 +85,17 @@ jobs:
       - name: Start docker compose (fragments + local AWS)
         run: docker compose up -d
 
-      # S3 버킷 / DynamoDB 테이블 생성
+      # S3 버킷 / DynamoDB 테이블 생성 (aws CLI)
       - name: Setup Local AWS Resources
         run: ./scripts/local-aws-setup.sh
+
+      # Node SDK 기준으로도 테이블이 ACTIVE 상태인지 한 번 더 확인
+      - name: Ensure DynamoDB table is active
+        run: node ./scripts/ensure-dynamo-table.js
+
+      # 컨테이너 / 로컬 AWS 준비 시간 조금 더 주기
+      - name: Wait a bit before Hurl
+        run: sleep 3
 
       # Hurl 통합 테스트 (lab-9, lab-10 포함)
       - name: Run Hurl integration tests
