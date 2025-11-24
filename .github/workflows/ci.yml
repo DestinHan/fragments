@@ -75,10 +75,6 @@ jobs:
       - name: Start docker compose (fragments + local AWS)
         run: docker compose up -d
 
-      # AWS CLI 확실히 설치
-      - name: Install AWS CLI
-        uses: aws-actions/setup-cli@v2
-
       # 네가 보내준 scripts/local-aws-setup.sh 사용
       - name: Setup Local AWS Resources
         run: ./scripts/local-aws-setup.sh
