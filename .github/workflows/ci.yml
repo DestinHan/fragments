@@ -53,11 +53,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [lint, dockerfile-lint, unit-tests]
     env:
-      # LocalStack / DynamoDB Local과 맞추는 공통 자격 증명
+      # LocalStack / DynamoDB Local 에 맞춘 공통 AWS 자격 증명
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       AWS_SESSION_TOKEN: test
       AWS_DEFAULT_REGION: us-east-1
+      # fragments 서버에서도 http basic 을 쓰니까 통일
+      AUTH_STRATEGY: http
+      BASIC_USER: user
+      BASIC_PASS: pass
 
     steps:
       - name: Check out code
@@ -73,15 +77,36 @@ jobs:
       - name: Install node dependencies
         run: npm ci
 
-      # fragments + localstack + dynamodb-local 컨테이너 기동
-      - name: Start docker compose (fragments + local AWS)
-        run: docker compose up -d
+      - name: Install Hurl
+      # Hurl이 runner에 기본으로 없어서 직접 설치
+        run: |
+          curl -sSL https://github.com/Orange-OpenSource/hurl/releases/download/4.2.0/hurl_4.2.0_amd64.deb -o hurl.deb
+          sudo dpkg -i hurl.deb
 
-      # S3 버킷 / DynamoDB 테이블 준비 (aws CLI 사용)
+      # fragments + localstack + dynamodb-local 컨테이너 빌드 & 기동
+      - name: Start docker compose (fragments + local AWS)
+        run: docker compose up --build -d
+
+      # fragments 서버가 실제로 떠서 200/health 주는지 기다리기
+      - name: Wait for fragments to be ready
+        run: |
+          echo "Waiting for fragments service on http://localhost:8080/health ..."
+          for i in {1..30}; do
+            if curl -sSf http://localhost:8080/health >/dev/null 2>&1; then
+              echo "fragments is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "fragments service did not become healthy in time" >&2
+          docker ps
+          exit 1
+
+      # S3 버킷 / DynamoDB 테이블 준비 (scripts/local-aws-setup.sh)
       - name: Setup Local AWS Resources
         run: ./scripts/local-aws-setup.sh
 
-      # Hurl 통합 테스트 (node_modules/.bin/hurl 사용)
+      # Hurl 통합 테스트
       - name: Run Hurl integration tests
         run: npm run test:integration
 
@@ -92,6 +117,7 @@ jobs:
           echo "==== docker ps ===="
           docker ps
           echo "==== fragments logs ===="
+          # 컨테이너 이름은 docker-compose.yml 기준 (서비스 이름: fragments)
           docker logs $(docker ps -q --filter "name=fragments-fragments") || true
 
       # 항상 컨테이너 정리
@@ -102,7 +128,6 @@ jobs:
   docker-hub:
     name: Build and Push to Docker Hub
     runs-on: ubuntu-latest
-    # integration-tests까지 모두 성공해야 빌드/푸시
     needs: [lint, dockerfile-lint, unit-tests, integration-tests]
     permissions:
       contents: read
