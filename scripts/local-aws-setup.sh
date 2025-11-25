@@ -1,27 +1,21 @@
-#!/usr/bin/env bash
 set -euo pipefail
 
 echo "=== Local AWS setup (S3 + DynamoDB) ==="
 
-# 공통 환경 변수 (없으면 기본값)
 AWS_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 
-# --- S3 (localstack) 설정 ---
-# ⚠️ 호스트에서 도는 스크립트니까 localhost:4566 기준
 S3_ENDPOINT="${AWS_S3_ENDPOINT:-http://localhost:4566}"
 S3_BUCKET="${AWS_S3_BUCKET_NAME:-fragments}"
 
 echo "S3 endpoint : ${S3_ENDPOINT}"
 echo "S3 bucket   : ${S3_BUCKET}"
 
-# 버킷 존재 여부 확인
 if aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
   s3api head-bucket --bucket "${S3_BUCKET}" 2>/dev/null; then
   echo "S3 bucket '${S3_BUCKET}' already exists"
 else
   echo "Creating S3 bucket '${S3_BUCKET}'..."
 
-  # ⭐ us-east-1 은 LocationConstraint 사용하면 안 됨
   if [ "${AWS_REGION}" = "us-east-1" ]; then
     aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
       s3api create-bucket --bucket "${S3_BUCKET}"
@@ -35,8 +29,6 @@ else
   echo "S3 bucket '${S3_BUCKET}' created"
 fi
 
-# --- DynamoDB (dynamodb-local) 설정 ---
-# ⚠️ 여기서는 절대 URL 변수 쓰지 말고, 호스트 기준 endpoint만 쓴다
 DDB_ENDPOINT="${AWS_DYNAMODB_ENDPOINT:-http://localhost:8000}"
 DDB_TABLE="${AWS_DYNAMODB_TABLE_NAME:-fragments}"
 

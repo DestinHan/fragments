@@ -1,4 +1,3 @@
-// src/routes/v1.js
 const express = require('express');
 const MarkdownIt = require('markdown-it');
 
@@ -12,10 +11,8 @@ const router = express.Router();
 const STRATEGY = process.env.AUTH_STRATEGY === 'http' ? 'http' : 'bearer';
 const md = new MarkdownIt();
 
-// ✅ v1 라우트는 전부 인증 필요 (헬스는 app.js에서 무인증으로 처리)
 router.use(authenticate(STRATEGY));
 
-// 원본/raw 바디 필요: /v1/fragments (최대 5MB)
 router.use('/fragments', express.raw({ type: '*/*', limit: '5mb' }));
 
 function getOwnerId(req) {

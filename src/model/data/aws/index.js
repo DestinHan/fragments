@@ -1,4 +1,3 @@
-// src/model/data/aws/index.js
 
 'use strict';
 
@@ -11,7 +10,6 @@ const {
 const logger = require('../../../logger');
 const s3 = require('./s3Client');
 
-// DynamoDB Document Client + Commands
 const ddbDocClient = require('./ddbDocClient');
 const {
   PutCommand,
@@ -29,11 +27,6 @@ logger.debug(
   'AWS data layer configured (S3 bucket / DynamoDB table)'
 );
 
-// =======================
-// 메타데이터 (DynamoDB)
-// =======================
-
-// fragmentMeta: { ownerId, id, created, updated, type, size }
 async function writeFragment(fragmentMeta) {
   if (!TABLE_NAME) {
     const e = new Error('AWS_DYNAMODB_TABLE_NAME is not set');
@@ -61,7 +54,6 @@ async function writeFragment(fragmentMeta) {
   }
 }
 
-// fragment 하나 읽기
 async function readFragment(ownerId, id) {
   const params = {
     TableName: TABLE_NAME,
@@ -72,7 +64,6 @@ async function readFragment(ownerId, id) {
 
   try {
     const data = await ddbDocClient.send(command);
-    // 없으면 data.Item 이 undefined
     return data?.Item;
   } catch (err) {
     logger.warn({ err, params }, 'error reading fragment from DynamoDB');
@@ -80,8 +71,6 @@ async function readFragment(ownerId, id) {
   }
 }
 
-// ownerId 기준으로 fragment 목록 가져오기
-// expand=false 면 id 배열만, true 면 전체 객체 배열
 async function listFragments(ownerId, expand = false) {
   const params = {
     TableName: TABLE_NAME,
@@ -114,10 +103,6 @@ async function listFragments(ownerId, expand = false) {
     throw err;
   }
 }
-
-// =======================
-// 데이터 (S3)
-// =======================
 
 const keyOf = (ownerId, id) => `${ownerId}/${id}`;
 
@@ -168,14 +153,12 @@ async function readFragmentData(ownerId, id) {
     );
     return await streamToBuffer(out.Body);
   } catch (err) {
-    // 없거나 권한 문제일 수 있음: 상위에서 404를 내므로 undefined 반환
     logger.warn({ err, bucket: BUCKET, key: Key }, 'S3 GetObject failed');
     return undefined;
   }
 }
 
 async function deleteFragment(ownerId, id) {
-  // 1) 메타데이터 먼저 확인
   const meta = await readFragment(ownerId, id);
   if (!meta) {
     const e = new Error('not found');
@@ -183,7 +166,6 @@ async function deleteFragment(ownerId, id) {
     throw e;
   }
 
-  // 2) S3 데이터 삭제
   const Key = keyOf(ownerId, id);
 
   if (!BUCKET) {
@@ -206,7 +188,6 @@ async function deleteFragment(ownerId, id) {
     );
   }
 
-  // 3) DynamoDB 메타데이터 삭제
   const params = {
     TableName: TABLE_NAME,
     Key: { ownerId, id },

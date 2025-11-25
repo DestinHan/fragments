@@ -1,4 +1,3 @@
-// scripts/ensure-dynamo-table.js
 'use strict';
 
 const {
@@ -21,9 +20,6 @@ function getCredentials() {
 const REGION =
   process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
 
-// ✅ CI 호스트에서 돌릴 때는 localhost:8000,  
-// ✅ 도커 안에서 돌리면 AWS_DYNAMODB_ENDPOINT_URL (예: http://dynamodb-local:8000)
-// 둘 중 아무거나 있으면 그걸 쓰게 함
 const ENDPOINT =
   process.env.AWS_DYNAMODB_ENDPOINT_URL || process.env.AWS_DYNAMODB_ENDPOINT;
 
@@ -45,7 +41,6 @@ async function ensureTable() {
     JSON.stringify({ region: REGION, endpoint: ENDPOINT, table: TABLE_NAME })
   );
 
-  // 1) 먼저 describe-table 해서 이미 있으면 그냥 통과
   try {
     const out = await client.send(
       new DescribeTableCommand({ TableName: TABLE_NAME })
@@ -62,7 +57,6 @@ async function ensureTable() {
     console.log(`Table '${TABLE_NAME}' does not exist. Creating...`);
   }
 
-  // 2) 없으면 create-table
   await client.send(
     new CreateTableCommand({
       TableName: TABLE_NAME,
@@ -71,8 +65,8 @@ async function ensureTable() {
         { AttributeName: 'id', AttributeType: 'S' },
       ],
       KeySchema: [
-        { AttributeName: 'ownerId', KeyType: 'HASH' }, // partition key
-        { AttributeName: 'id', KeyType: 'RANGE' }, // sort key
+        { AttributeName: 'ownerId', KeyType: 'HASH' },
+        { AttributeName: 'id', KeyType: 'RANGE' },
       ],
       ProvisionedThroughput: {
         ReadCapacityUnits: 5,
@@ -83,7 +77,6 @@ async function ensureTable() {
 
   console.log(`CreateTable sent for '${TABLE_NAME}', waiting for ACTIVE...`);
 
-  // 3) ACTIVE 될 때까지 폴링
   for (let i = 0; i < 30; i++) {
     await wait(2000);
     try {

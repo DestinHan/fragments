@@ -30,8 +30,8 @@ const getCredentials = () => {
 
 /**
  * If an AWS DynamoDB Endpoint is configured in the environment, use it.
- * - 우선 AWS_DYNAMODB_ENDPOINT_URL (도커 컨테이너용)
- * - 없으면 AWS_DYNAMODB_ENDPOINT (GitHub Actions / 호스트용)
+ * - 우선 AWS_DYNAMODB_ENDPOINT_URL
+ * - AWS_DYNAMODB_ENDPOINT
  * @returns string | undefined
  */
 const getDynamoDBEndpoint = () => {
