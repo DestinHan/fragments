@@ -58,8 +58,13 @@ jobs:
       AWS_SECRET_ACCESS_KEY: test
       AWS_SESSION_TOKEN: test
       AWS_DEFAULT_REGION: us-east-1
-      # ensure-dynamo-table.js 에서 사용할 endpoint
+      AWS_REGION: us-east-1
+
+      # local-aws-setup.sh 에서 사용할 endpoint 들
+      AWS_S3_ENDPOINT: http://localhost:4566
       AWS_DYNAMODB_ENDPOINT: http://localhost:8000
+
+      # 테이블 이름(스크립트 + 앱 둘 다 사용)
       AWS_DYNAMODB_TABLE_NAME: fragments
 
     steps:
@@ -87,7 +92,18 @@ jobs:
 
       # S3 버킷 / DynamoDB 테이블 생성 (aws CLI)
       - name: Setup Local AWS Resources
-        run: ./scripts/local-aws-setup.sh
+        run: |
+          echo "=== local-aws-setup.sh ==="
+          ./scripts/local-aws-setup.sh
+
+          echo "=== dynamodb list-tables (CI host) ==="
+          aws --endpoint-url http://localhost:8000 --region us-east-1 dynamodb list-tables || true
+
+          echo "=== dynamodb describe-table fragments (CI host) ==="
+          aws --endpoint-url http://localhost:8000 --region us-east-1 dynamodb describe-table --table-name fragments || true
+
+          echo "=== s3 buckets (CI host via LocalStack) ==="
+          aws --endpoint-url http://localhost:4566 --region us-east-1 s3 ls || true
 
       # Node SDK 기준으로도 테이블이 ACTIVE 상태인지 한 번 더 확인
       - name: Ensure DynamoDB table is active
