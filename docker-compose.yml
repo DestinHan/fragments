@@ -1,20 +1,29 @@
 services:
   fragments:
+    container_name: fragments
     init: true
     build: .
     environment:
       - API_URL=http://localhost:8080
       - HTPASSWD_FILE=tests/.htpasswd
       - AUTH_STRATEGY=http
-      - LOG_LEVEL=${LOG_LEVEL:-debug}          
-      - AWS_REGION=us-east-1
+      - LOG_LEVEL=${LOG_LEVEL:-debug}
+
+      # AWS 공통 region
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+
+      # S3 / DynamoDB endpoint (도커 네트워크 안에서는 서비스 이름으로 접근)
       - AWS_S3_ENDPOINT_URL=http://localstack:4566
       - AWS_DYNAMODB_ENDPOINT_URL=http://dynamodb-local:8000
-      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-fragments} 
+
+      # 버킷 / 테이블 이름
+      - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME:-fragments}
       - AWS_DYNAMODB_TABLE_NAME=${AWS_DYNAMODB_TABLE_NAME:-fragments}
-      - AWS_ACCESS_KEY_ID=localstack
-      - AWS_SECRET_ACCESS_KEY=localstack
-      - AWS_SESSION_TOKEN=localstack
+
+      # 🔥 자격증명: CI에서 쓰는 값(test)랑 맞추기 + 로컬에서도 기본값 test 사용
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-test}
     ports:
       - "8080:8080"
     depends_on:
@@ -22,12 +31,14 @@ services:
       - localstack
 
   dynamodb-local:
+    container_name: dynamodb-local
     image: amazon/dynamodb-local
     ports:
       - "8000:8000"
     command: ["-jar", "DynamoDBLocal.jar", "-inMemory"]
 
   localstack:
+    container_name: localstack
     image: localstack/localstack
     ports:
       - "4566:4566"
