@@ -35,7 +35,8 @@ else
 fi
 
 # --- DynamoDB (dynamodb-local) 설정 ---
-DDB_ENDPOINT="${AWS_DYNAMODB_ENDPOINT:-http://localhost:8000}"
+# 👉 AWS_DYNAMODB_ENDPOINT_URL 이 있으면 그거 먼저 사용, 없으면 AWS_DYNAMODB_ENDPOINT, 둘 다 없으면 localhost:8000
+DDB_ENDPOINT="${AWS_DYNAMODB_ENDPOINT_URL:-${AWS_DYNAMODB_ENDPOINT:-http://localhost:8000}}"
 DDB_TABLE="${AWS_DYNAMODB_TABLE_NAME:-fragments}"
 
 echo "DynamoDB endpoint : ${DDB_ENDPOINT}"
@@ -62,5 +63,9 @@ else
   aws --endpoint-url "${DDB_ENDPOINT}" --region "${AWS_REGION}" \
     dynamodb wait table-exists --table-name "${DDB_TABLE}"
 fi
+
+echo "Current DynamoDB tables:"
+aws --endpoint-url "${DDB_ENDPOINT}" --region "${AWS_REGION}" \
+  dynamodb list-tables || true
 
 echo "=== Local AWS setup complete ==="

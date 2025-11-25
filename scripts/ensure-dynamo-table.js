@@ -7,7 +7,13 @@ const {
 } = require('@aws-sdk/client-dynamodb');
 
 const TABLE_NAME = process.env.AWS_DYNAMODB_TABLE_NAME || 'fragments';
-const ENDPOINT = process.env.AWS_DYNAMODB_ENDPOINT || 'http://localhost:8000';
+
+// 👉 endpoint 우선순위: URL → 일반 → localhost
+const ENDPOINT =
+  process.env.AWS_DYNAMODB_ENDPOINT_URL ||
+  process.env.AWS_DYNAMODB_ENDPOINT ||
+  'http://localhost:8000';
+
 const REGION = process.env.AWS_DEFAULT_REGION || 'us-east-1';
 
 async function waitForActive() {
@@ -41,7 +47,6 @@ async function waitForActive() {
         return;
       }
     } catch (err) {
-      // 테이블이 없으면 여기로 옴
       console.log(
         `Attempt ${i}: describe-table failed (${err.name || err.message})`
       );
