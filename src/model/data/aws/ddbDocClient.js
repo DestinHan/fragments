@@ -1,5 +1,7 @@
 // src/model/data/aws/ddbDocClient.js
 
+'use strict';
+
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 // Helper library for working with converting DynamoDB types to/from JS
 const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
@@ -28,21 +30,27 @@ const getCredentials = () => {
 
 /**
  * If an AWS DynamoDB Endpoint is configured in the environment, use it.
+ * - 우선 AWS_DYNAMODB_ENDPOINT_URL (도커 컨테이너용)
+ * - 없으면 AWS_DYNAMODB_ENDPOINT (GitHub Actions / 호스트용)
  * @returns string | undefined
  */
 const getDynamoDBEndpoint = () => {
-  if (process.env.AWS_DYNAMODB_ENDPOINT_URL) {
-    logger.debug(
-      { endpoint: process.env.AWS_DYNAMODB_ENDPOINT_URL },
-      'Using alternate DynamoDB endpoint'
-    );
-    return process.env.AWS_DYNAMODB_ENDPOINT_URL;
+  const endpoint =
+    process.env.AWS_DYNAMODB_ENDPOINT_URL || process.env.AWS_DYNAMODB_ENDPOINT;
+
+  if (endpoint) {
+    logger.debug({ endpoint }, 'Using alternate DynamoDB endpoint');
+    return endpoint;
   }
 };
 
+// region 은 둘 중 아무거나 있으면 사용, 없으면 us-east-1
+const REGION =
+  process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
+
 // Create and configure an Amazon DynamoDB client object.
 const ddbClient = new DynamoDBClient({
-  region: process.env.AWS_REGION,
+  region: REGION,
   endpoint: getDynamoDBEndpoint(),
   credentials: getCredentials(),
 });

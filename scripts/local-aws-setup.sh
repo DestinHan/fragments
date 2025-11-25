@@ -1,37 +1,56 @@
-#!/bin/sh
+#!/usr/bin/env bash
+set -euo pipefail
 
-set -e
+echo "=== Local AWS setup (S3 + DynamoDB) ==="
 
-echo "Setting AWS environment variables for LocalStack / DynamoDB Local"
-export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-test}
-export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-test}
-export AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-test}
-export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-east-1}
+# 공통 환경 변수 (없으면 기본값)
+AWS_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 
-# ---------- S3 (LocalStack) 준비 ----------
-echo 'Waiting for LocalStack S3...'
-until (curl --silent http://localhost:4566/_localstack/health | grep "\"s3\": \"\(running\|available\)\"" >/dev/null); do
-  sleep 3
-done
-echo '✅ LocalStack S3 Ready'
+# --- S3 (localstack) 설정 ---
+S3_ENDPOINT="${AWS_S3_ENDPOINT:-http://localhost:4566}"
+S3_BUCKET="${AWS_S3_BUCKET_NAME:-fragments}"
 
-echo "Creating LocalStack S3 bucket: fragments (idempotent)"
-aws --endpoint-url=http://localhost:4566 s3api create-bucket --bucket fragments >/dev/null 2>&1 || true
-echo "✅ S3 bucket 'fragments' ready"
+echo "S3 endpoint : ${S3_ENDPOINT}"
+echo "S3 bucket   : ${S3_BUCKET}"
 
-# ---------- DynamoDB Local 준비 ----------
-echo "Creating DynamoDB-Local table: fragments (idempotent)"
-aws --endpoint-url=http://localhost:8000 dynamodb create-table \
-  --table-name fragments \
-  --attribute-definitions AttributeName=ownerId,AttributeType=S AttributeName=id,AttributeType=S \
-  --key-schema AttributeName=ownerId,KeyType=HASH AttributeName=id,KeyType=RANGE \
-  --provisioned-throughput ReadCapacityUnits=10,WriteCapacityUnits=5 \
-  >/dev/null 2>&1 || true
+# 버킷 존재 여부 확인
+if aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
+  s3api head-bucket --bucket "${S3_BUCKET}" 2>/dev/null; then
+  echo "S3 bucket '${S3_BUCKET}' already exists"
+else
+  echo "Creating S3 bucket '${S3_BUCKET}'..."
+  aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
+    s3api create-bucket --bucket "${S3_BUCKET}" \
+    --create-bucket-configuration LocationConstraint="${AWS_REGION}" || true
+fi
 
-echo "Waiting for DynamoDB table 'fragments' to exist..."
-aws --endpoint-url=http://localhost:8000 dynamodb wait table-exists --table-name fragments
+# --- DynamoDB (dynamodb-local) 설정 ---
+DDB_ENDPOINT="${AWS_DYNAMODB_ENDPOINT:-http://localhost:8000}"
+DDB_TABLE="${AWS_DYNAMODB_TABLE_NAME:-fragments}"
 
-echo "Current DynamoDB tables:"
-aws --endpoint-url=http://localhost:8000 dynamodb list-tables
+echo "DynamoDB endpoint : ${DDB_ENDPOINT}"
+echo "DynamoDB table    : ${DDB_TABLE}"
 
-echo "✅ All local AWS resources are ready."
+# 테이블 없으면 생성
+if aws --endpoint-url "${DDB_ENDPOINT}" --region "${AWS_REGION}" \
+  dynamodb describe-table --table-name "${DDB_TABLE}" >/dev/null 2>&1; then
+  echo "DynamoDB table '${DDB_TABLE}' already exists"
+else
+  echo "Creating DynamoDB table '${DDB_TABLE}'..."
+  aws --endpoint-url "${DDB_ENDPOINT}" --region "${AWS_REGION}" \
+    dynamodb create-table \
+      --table-name "${DDB_TABLE}" \
+      --attribute-definitions \
+        AttributeName=ownerId,AttributeType=S \
+        AttributeName=id,AttributeType=S \
+      --key-schema \
+        AttributeName=ownerId,KeyType=HASH \
+        AttributeName=id,KeyType=RANGE \
+      --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+  echo "Waiting for table '${DDB_TABLE}' to become ACTIVE..."
+  aws --endpoint-url "${DDB_ENDPOINT}" --region "${AWS_REGION}" \
+    dynamodb wait table-exists --table-name "${DDB_TABLE}"
+fi
+
+echo "=== Local AWS setup complete ==="
