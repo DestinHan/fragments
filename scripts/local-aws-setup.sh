@@ -19,9 +19,19 @@ if aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
   echo "S3 bucket '${S3_BUCKET}' already exists"
 else
   echo "Creating S3 bucket '${S3_BUCKET}'..."
-  aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
-    s3api create-bucket --bucket "${S3_BUCKET}" \
-    --create-bucket-configuration LocationConstraint="${AWS_REGION}" || true
+
+  # ⭐ us-east-1 은 LocationConstraint 사용하면 안 됨
+  if [ "${AWS_REGION}" = "us-east-1" ]; then
+    aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
+      s3api create-bucket --bucket "${S3_BUCKET}"
+  else
+    aws --endpoint-url "${S3_ENDPOINT}" --region "${AWS_REGION}" \
+      s3api create-bucket \
+        --bucket "${S3_BUCKET}" \
+        --create-bucket-configuration LocationConstraint="${AWS_REGION}"
+  fi
+
+  echo "S3 bucket '${S3_BUCKET}' created"
 fi
 
 # --- DynamoDB (dynamodb-local) 설정 ---
