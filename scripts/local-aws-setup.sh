@@ -7,6 +7,7 @@ echo "=== Local AWS setup (S3 + DynamoDB) ==="
 AWS_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 
 # --- S3 (localstack) 설정 ---
+# ⚠️ 호스트에서 도는 스크립트니까 localhost:4566 기준
 S3_ENDPOINT="${AWS_S3_ENDPOINT:-http://localhost:4566}"
 S3_BUCKET="${AWS_S3_BUCKET_NAME:-fragments}"
 
@@ -35,8 +36,8 @@ else
 fi
 
 # --- DynamoDB (dynamodb-local) 설정 ---
-# 👉 AWS_DYNAMODB_ENDPOINT_URL 이 있으면 그거 먼저 사용, 없으면 AWS_DYNAMODB_ENDPOINT, 둘 다 없으면 localhost:8000
-DDB_ENDPOINT="${AWS_DYNAMODB_ENDPOINT_URL:-${AWS_DYNAMODB_ENDPOINT:-http://localhost:8000}}"
+# ⚠️ 여기서는 절대 URL 변수 쓰지 말고, 호스트 기준 endpoint만 쓴다
+DDB_ENDPOINT="${AWS_DYNAMODB_ENDPOINT:-http://localhost:8000}"
 DDB_TABLE="${AWS_DYNAMODB_TABLE_NAME:-fragments}"
 
 echo "DynamoDB endpoint : ${DDB_ENDPOINT}"

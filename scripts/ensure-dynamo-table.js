@@ -8,12 +8,8 @@ const {
 
 const TABLE_NAME = process.env.AWS_DYNAMODB_TABLE_NAME || 'fragments';
 
-// 👉 endpoint 우선순위: URL → 일반 → localhost
-const ENDPOINT =
-  process.env.AWS_DYNAMODB_ENDPOINT_URL ||
-  process.env.AWS_DYNAMODB_ENDPOINT ||
-  'http://localhost:8000';
-
+// ⚠️ 여기서도 URL 변수 쓰지 말고, 호스트 기준 endpoint만 쓴다
+const ENDPOINT = process.env.AWS_DYNAMODB_ENDPOINT || 'http://localhost:8000';
 const REGION = process.env.AWS_DEFAULT_REGION || 'us-east-1';
 
 async function waitForActive() {
