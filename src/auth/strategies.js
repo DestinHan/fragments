@@ -1,8 +1,10 @@
+// src/auth/strategies.js
 const passport = require('passport');
 const { BasicStrategy } = require('passport-http');
 const { Strategy: BearerStrategy } = require('passport-http-bearer');
 const { CognitoJwtVerifier } = require('aws-jwt-verify');
 
+// --- HTTP Basic strategy (Lab 1~9용) ---
 passport.use(
   'http',
   new BasicStrategy((email, password, done) => {
@@ -23,7 +25,9 @@ if (userPoolId && clientId) {
   verifier = CognitoJwtVerifier.create({
     userPoolId,
     clientId,
-    tokenUse: 'access',
+    // ✅ UI가 Authorization 헤더로 보내는 건 id token 이라서
+    //    access 말고 id 로 맞춰줘야 함
+    tokenUse: 'id',
   });
   console.log('[auth] Cognito verifier initialized', { userPoolId, clientId });
 } else {
@@ -41,12 +45,15 @@ passport.use(
 
     try {
       const payload = await verifier.verify(token);
+
+      // payload 안에 email, sub 등 들어있음
       return done(null, { sub: payload.sub, email: payload.email });
-    } catch {
-      console.warn('[auth] Token verification failed');
+    } catch (err) {
+      console.warn('[auth] Token verification failed', err);
       return done(null, false);
     }
   })
 );
 
+// 이 파일은 side-effect(전략 등록)만 필요해서 굳이 passport 안 내보내도 됨
 module.exports = {};
