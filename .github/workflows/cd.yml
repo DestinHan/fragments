@@ -69,7 +69,6 @@ jobs:
         with:
           task-definition: ${{ env.TASK_DEF }}
           container-name: ${{ env.CONTAINER_NAME }}
-          # 여기서 image 값을 outputs 안 쓰고 직접 지정
           image: 471112953885.dkr.ecr.us-east-1.amazonaws.com/fragments:${{ github.ref_name }}
           environment-variables: |
             LOG_LEVEL=info

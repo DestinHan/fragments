@@ -1,7 +1,6 @@
 'use strict';
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-// Helper library for working with converting DynamoDB types to/from JS
 const { DynamoDBDocumentClient } = require('@aws-sdk/lib-dynamodb');
 
 const logger = require('../../../logger');
@@ -51,9 +50,6 @@ const ddbClient = new DynamoDBClient({
   credentials: getCredentials(),
 });
 
-// Instead of exposing the ddbClient directly, we'll wrap it with a helper
-// that will simplify converting data to/from DynamoDB and JavaScript (i.e.
-// marshalling and unmarshalling typed attribute data)
 const ddbDocClient = DynamoDBDocumentClient.from(ddbClient, {
   marshallOptions: {
     // Whether to automatically convert empty strings, blobs, and sets to `null`.

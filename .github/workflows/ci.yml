@@ -60,7 +60,6 @@ jobs:
       AWS_DEFAULT_REGION: us-east-1
       AWS_REGION: us-east-1
 
-      # Node 코드(s3Client, ddbClient)에서 쓰는 엔드포인트
       AWS_S3_ENDPOINT_URL: http://localhost:4566
       AWS_DYNAMODB_ENDPOINT_URL: http://localhost:8000
 
