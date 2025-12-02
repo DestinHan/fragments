@@ -156,4 +156,4 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/fragments:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/fragments:main
-            ${{ secrets.DOCKERHUB_USERNAME }}/fragmeㄴnts:${{ steps.vars.outputs.sha }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/fragments:${{ steps.vars.outputs.sha }}
