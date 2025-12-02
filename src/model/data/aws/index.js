@@ -18,7 +18,6 @@ const {
   DeleteCommand,
 } = require('@aws-sdk/lib-dynamodb');
 
-// env 없을 때도 안전하게 기본값 사용
 const BUCKET = process.env.AWS_S3_BUCKET_NAME || 'fragments';
 const TABLE_NAME = process.env.AWS_DYNAMODB_TABLE_NAME || 'fragments';
 

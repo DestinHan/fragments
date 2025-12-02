@@ -1,5 +1,3 @@
-// src/model/data/aws/ddbDocClient.js
-
 'use strict';
 
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
@@ -15,7 +13,6 @@ const logger = require('../../../logger');
  */
 const getCredentials = () => {
   if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-    // See https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-dynamodb/interfaces/dynamodbclientconfig.html#credentials
     const credentials = {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -30,7 +27,7 @@ const getCredentials = () => {
 
 /**
  * If an AWS DynamoDB Endpoint is configured in the environment, use it.
- * - 우선 AWS_DYNAMODB_ENDPOINT_URL
+ * - AWS_DYNAMODB_ENDPOINT_URL
  * - AWS_DYNAMODB_ENDPOINT
  * @returns string | undefined
  */
@@ -44,7 +41,6 @@ const getDynamoDBEndpoint = () => {
   }
 };
 
-// region 은 둘 중 아무거나 있으면 사용, 없으면 us-east-1
 const REGION =
   process.env.AWS_REGION || process.env.AWS_DEFAULT_REGION || 'us-east-1';
 

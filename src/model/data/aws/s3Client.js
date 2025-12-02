@@ -36,6 +36,5 @@ module.exports = new S3Client({
   region: REGION,
   credentials: getCredentials(),
   endpoint: getEndpoint(),
-
   forcePathStyle: true,
 });
