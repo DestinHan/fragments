@@ -1,7 +1,7 @@
 {
   "name": "fragments",
   "private": true,
-  "version": "0.9.32",
+  "version": "0.9.33",
   "description": "Fragments back-end API",
   "scripts": {
     "lint": "eslint \"./src/**/*.js\" \"tests/**/*.js\"",
